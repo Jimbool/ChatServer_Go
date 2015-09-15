@@ -1,7 +1,7 @@
 package responseDataObject
 
 import (
-	"github.com/Jordanzuo/chatServer/src/model/commandType"
+	"github.com/Jordanzuo/ChatServer_Go/src/model/commandType"
 )
 
 // 响应对象

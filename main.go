@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Jordanzuo/chatServer/src/bll/chatBLL"
-	"github.com/Jordanzuo/chatServer/src/model/client"
+	"github.com/Jordanzuo/ChatServer_Go/src/bll/chatBLL"
+	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
 	"github.com/Jordanzuo/goutil/logUtil"
 	"io"
 	"io/ioutil"
@@ -120,6 +120,13 @@ func handleClient(clientObj *client.Client) {
 // 处理客户端连接
 // conn：客户端连接对象
 func handleConn(conn net.Conn) {
+	// 处理内部未处理的异常，以免导致主线程退出，从而导致系统崩溃
+	defer func() {
+		if err := recover(); err != nil {
+			logUtil.Log(fmt.Sprintf("通过recover捕捉到的未处理异常：%s", err), logUtil.Error, true)
+		}
+	}()
+
 	// 创建客户端对象
 	clientObj := client.NewClient(&conn, conn)
 

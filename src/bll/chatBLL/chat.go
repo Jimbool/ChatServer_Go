@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Jordanzuo/chatServer/src/bll/sensitiveWordsBLL"
-	"github.com/Jordanzuo/chatServer/src/model/channelType"
-	"github.com/Jordanzuo/chatServer/src/model/client"
-	"github.com/Jordanzuo/chatServer/src/model/commandType"
-	"github.com/Jordanzuo/chatServer/src/model/player"
-	"github.com/Jordanzuo/chatServer/src/model/responseDataObject"
+	"github.com/Jordanzuo/ChatServer_Go/src/bll/sensitiveWordsBLL"
+	"github.com/Jordanzuo/ChatServer_Go/src/model/channelType"
+	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
+	"github.com/Jordanzuo/ChatServer_Go/src/model/commandType"
+	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
+	"github.com/Jordanzuo/ChatServer_Go/src/model/responseDataObject"
 	"github.com/Jordanzuo/goutil/logUtil"
 	"github.com/Jordanzuo/goutil/securityUtil"
 	"github.com/Jordanzuo/goutil/stringUtil"
@@ -101,6 +101,13 @@ func SetParam(config map[string]interface{}) {
 
 // 清理过期的客户端
 func clearExpiredClient() {
+	// 处理内部未处理的异常，以免导致主线程退出，从而导致系统崩溃
+	defer func() {
+		if err := recover(); err != nil {
+			logUtil.Log(fmt.Sprintf("通过recover捕捉到的未处理异常：%s", err), logUtil.Error, true)
+		}
+	}()
+
 	for {
 		// 清理之前的客户端数量和玩家数量
 		beforeClientCount := len(ClientList)
@@ -556,7 +563,6 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 	case channelType.Union:
 		// 判断公会Id是否为空
 		if playerObj.UnionId == "" {
-			strings.run
 			responseObj = getResultStatusResponseObj(responseObj, responseDataObject.NotInUnion)
 			return
 		}

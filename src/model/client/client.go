@@ -159,9 +159,7 @@ func (c *Client) SendByteMessage(b []byte) {
 	message := append(header, b...)
 
 	// 发送消息
-	if c.Conn != nil {
-		c.Conn.Write(message)
-	}
+	c.Conn.Write(message)
 }
 
 // 判断客户端是否超时
