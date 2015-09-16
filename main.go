@@ -122,8 +122,8 @@ func handleClient(clientObj *client.Client) {
 func handleConn(conn net.Conn) {
 	// 处理内部未处理的异常，以免导致主线程退出，从而导致系统崩溃
 	defer func() {
-		if err := recover(); err != nil {
-			logUtil.Log(fmt.Sprintf("通过recover捕捉到的未处理异常：%s", err), logUtil.Error, true)
+		if r := recover(); r != nil {
+			logUtil.Log(fmt.Sprintf("通过recover捕捉到的未处理异常：%v", r), logUtil.Error, true)
 		}
 	}()
 
