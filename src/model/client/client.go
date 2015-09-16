@@ -3,7 +3,9 @@ package client
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"github.com/Jordanzuo/goutil/intAndBytesUtil"
+	"github.com/Jordanzuo/goutil/logUtil"
 	"net"
 	"sync"
 	"time"
@@ -159,7 +161,10 @@ func (c *Client) SendByteMessage(b []byte) {
 	message := append(header, b...)
 
 	// 发送消息
-	c.Conn.Write(message)
+	_, err := c.Conn.Write(message)
+	if err != nil {
+		logUtil.Log(fmt.Sprintf("发送数据错误：%s", err), logUtil.Error, true)
+	}
 }
 
 // 判断客户端是否超时
