@@ -7,7 +7,6 @@ import (
 	"github.com/Jordanzuo/goutil/intAndBytesUtil"
 	"github.com/Jordanzuo/goutil/logUtil"
 	"net"
-	"sync"
 	"time"
 )
 
@@ -56,9 +55,6 @@ type Client struct {
 
 	// 上次活跃时间
 	activeTime time.Time
-
-	// 锁对象
-	mutex sync.RWMutex
 }
 
 // 新建客户端对象
@@ -81,10 +77,6 @@ func NewClient(id *net.Conn, conn net.Conn) *Client {
 // content：新的内容
 // 返回值：无
 func (c *Client) AppendContent(content []byte) {
-	// 锁住对象，以避免线程冲突
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
 	c.content = append(c.content, content...)
 	c.activeTime = time.Now()
 }
@@ -92,10 +84,6 @@ func (c *Client) AppendContent(content []byte) {
 // 判断当前已经收到的消息是否为有效消息（即已经收到了完整的信息）
 // 返回值：是否有效
 func (c *Client) ifHasValidMessage() bool {
-	// 锁住对象
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-
 	// 判断是否包含头部信息
 	if len(c.content) < HEADER_LENGTH {
 		return false
@@ -119,10 +107,6 @@ func (c *Client) ifHasValidMessage() bool {
 // 返回值：消息内容
 //		：是否含有有效数据
 func (c *Client) GetValieMessage() ([]byte, bool) {
-	// 锁住对象
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
 	// 判断是否包含头部信息
 	if len(c.content) < HEADER_LENGTH {
 		return nil, false

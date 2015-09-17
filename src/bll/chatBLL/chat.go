@@ -14,7 +14,6 @@ import (
 	"github.com/Jordanzuo/goutil/securityUtil"
 	"github.com/Jordanzuo/goutil/stringUtil"
 	"net"
-	"sync"
 	"time"
 )
 
@@ -31,26 +30,20 @@ var (
 	// 客户端连接列表
 	ClientList = make(map[*net.Conn]*client.Client)
 
-	// 为避免ClientList出现多线程并发问题，而定义的锁对象
-	MutexForClientList sync.RWMutex
-
 	// 玩家列表
 	PlayerList = make(map[string]*player.Player)
-
-	// 用于玩家列表的锁对象
-	MutexForPlayerList sync.RWMutex
 
 	// 客户端和玩家的对应关系列表，key=Client.Id，value=Player.Id
 	ClientAndPlayerList = make(map[*net.Conn]string)
 
-	// 用于客户端和玩家映射关系列表的锁对象
-	MutexForClientAndPlayerList sync.RWMutex
-
 	// 玩家和客户端的对应关系列表，key=Player.Id, value=Client.Id
 	PlayerAndClientList = make(map[string]*net.Conn)
 
-	// 用于玩家和客户端映射关系列表的锁对象
-	MutexForPlayerAndClientList sync.RWMutex
+	// 定义增加、删除客户端channel；增加、删除玩家的channel
+	ClientAddChan    = make(chan *player.PlayerAndClient)
+	ClientRemoveChan = make(chan *player.PlayerAndClient)
+	PlayerAddChan    = make(chan *player.PlayerAndClient)
+	PlayerRemoveChan = make(chan *player.PlayerAndClient)
 )
 
 // 设置参数
@@ -95,12 +88,37 @@ func SetParam(config map[string]interface{}) {
 	// 设置参数MaxMsgLength
 	MaxMsgLength = int(maxMsgLength_int)
 
-	// 启动清理过期客户端连接的协gorountine
-	go clearExpiredClient()
+	// 启动清理过期客户端连接的gorountine
+	go clearExpiredClient(ClientRemoveChan)
+
+	// 启动处理增加、删除客户端channel；增加、删除玩家的channel的gorountine
+	go handleChannel(ClientAddChan, ClientRemoveChan, PlayerAddChan, PlayerRemoveChan)
+}
+
+// 处理增加、删除客户端channel；增加、删除玩家的channel的逻辑
+// clientAddChan: 客户端增加的channel
+// clientRemoveChan: 客户端移除的channel
+// playerAddChan: 玩家增加的channel
+// playerRemoveChan: 玩家移除的channel
+func handleChannel(clientAddChan, clientRemoveChan, playerAddChan, playerRemoveChan chan *player.PlayerAndClient) {
+	for {
+		select {
+		case playerAndClientObj := <-clientAddChan:
+			addClient(playerAndClientObj.Client)
+		case playerAndClientObj := <-clientRemoveChan:
+			removeClient(playerAndClientObj.Client)
+		case playerAndClientObj := <-playerAddChan:
+			addPlayer(playerAndClientObj.Player, playerAndClientObj.Client)
+		case playerAndClientObj := <-playerRemoveChan:
+			removePlayer(playerAndClientObj.Player, playerAndClientObj.Client)
+		default:
+			// 不做任何操作，只是为了避免阻塞
+		}
+	}
 }
 
 // 清理过期的客户端
-func clearExpiredClient() {
+func clearExpiredClient(clientRemoveChan chan *player.PlayerAndClient) {
 	// 处理内部未处理的异常，以免导致主线程退出，从而导致系统崩溃
 	defer func() {
 		if r := recover(); r != nil {
@@ -122,7 +140,7 @@ func clearExpiredClient() {
 		// 移除过期的客户
 		for _, item := range expiredClientList {
 			logUtil.Log(fmt.Sprintf("长时间未收到客户端的信息，所以将其关闭并移除。(%s)", item.Conn.RemoteAddr()), logUtil.Debug, true)
-			RemoveClient(item)
+			clientRemoveChan <- player.NewPlayerAndClient(nil, item)
 		}
 
 		// 清理之后的客户端数量和玩家数量
@@ -137,72 +155,16 @@ func clearExpiredClient() {
 			true,
 		)
 
+		fmt.Println("当前玩家数量：", afterPlayerCount)
+
 		// 休眠指定的时间（单位：秒）
 		time.Sleep(CheckExpiredInterval * time.Second)
 	}
 }
 
-// 添加一个新的客户端对象到列表中
-// clientObj：客户端对象
-func AddClient(clientObj *client.Client) {
-	// 锁定客户端列表
-	MutexForClientList.Lock()
-	defer MutexForClientList.Unlock()
-
-	// 添加到列表中
-	ClientList[clientObj.Id] = clientObj
-}
-
-// 移除一个客户端对象
-// 由于客户端对象与玩家对象之间可能已经建立了对应关系，所以在移除完客户端对象后，还需要移除客户端对象和玩家对象之间的对应关系（如果存在对应关系）
-// clientObj：客户端对象
-func RemoveClient(clientObj *client.Client) {
-	var ok bool
-	var playerId string
-
-	// 断开客户端连接，并从ClientList列表中删除
-	MutexForClientList.Lock()
-	if _, ok = ClientList[clientObj.Id]; ok {
-		// 断开连接
-		clientObj.Conn.Close()
-
-		// 删除客户端
-		delete(ClientList, clientObj.Id)
-	}
-	MutexForClientList.Unlock()
-
-	// 清除在ClientAndPlayerList中对应的Client
-	MutexForClientAndPlayerList.Lock()
-	if playerId, ok = ClientAndPlayerList[clientObj.Id]; ok {
-		delete(ClientAndPlayerList, clientObj.Id)
-	}
-	MutexForClientAndPlayerList.Unlock()
-
-	// 判断有没有找到对应的PlayerId
-	if !ok {
-		return
-	}
-
-	// 清除在PlayerAndClientList中对应的Player
-	MutexForPlayerAndClientList.Lock()
-	if _, ok = PlayerAndClientList[playerId]; ok {
-		delete(PlayerAndClientList, playerId)
-	}
-	MutexForPlayerAndClientList.Unlock()
-
-	// 清除在PlayerList中的玩家对象
-	MutexForPlayerList.Lock()
-	if _, ok = PlayerList[playerId]; ok {
-		delete(PlayerList, playerId)
-	}
-	MutexForPlayerList.Unlock()
-}
-
 // 获取过期的客户端对象列表
 // 返回值：过期的客户端对象列表
 func getExpiredClientList() (expiredClientList []*client.Client) {
-	MutexForClientList.RLock()
-	defer MutexForClientList.RUnlock()
 	for _, item := range ClientList {
 		if item.IfExpired() {
 			expiredClientList = append(expiredClientList, item)
@@ -212,54 +174,100 @@ func getExpiredClientList() (expiredClientList []*client.Client) {
 	return
 }
 
+// 添加一个新的客户端对象到列表中
+// clientObj：客户端对象
+func addClient(clientObj *client.Client) {
+	// 添加到列表中
+	ClientList[clientObj.Id] = clientObj
+}
+
+// 移除一个客户端对象
+// 由于客户端对象与玩家对象之间可能已经建立了对应关系，所以在移除完客户端对象后，还需要移除客户端对象和玩家对象之间的对应关系（如果存在对应关系）
+// clientObj：客户端对象
+func removeClient(clientObj *client.Client) {
+	var ok bool
+	var playerId string
+
+	// 断开客户端连接，并从ClientList列表中删除
+	if _, ok = ClientList[clientObj.Id]; ok {
+		// 断开连接
+		clientObj.Conn.Close()
+
+		// 删除客户端
+		delete(ClientList, clientObj.Id)
+	}
+
+	// 清除在ClientAndPlayerList中对应的Client
+	if playerId, ok = ClientAndPlayerList[clientObj.Id]; ok {
+		delete(ClientAndPlayerList, clientObj.Id)
+	}
+
+	// 判断有没有找到对应的PlayerId
+	if !ok {
+		return
+	}
+
+	// 清除在PlayerAndClientList中对应的Player
+	if _, ok = PlayerAndClientList[playerId]; ok {
+		delete(PlayerAndClientList, playerId)
+	}
+
+	// 清除在PlayerList中的玩家对象
+	if _, ok = PlayerList[playerId]; ok {
+		delete(PlayerList, playerId)
+	}
+}
+
 // 添加玩家对象
 // 添加玩家的时候，客户端对象已经存在，所以在添加完玩家对象后，还需要添加客户端对象与玩家对象之间的对应关系
-// clientObj：客户端对象
 // playerObj：玩家对象
-func addPlayer(clientObj *client.Client, playerObj *player.Player) {
+// clientObj：客户端对象
+func addPlayer(playerObj *player.Player, clientObj *client.Client) {
+	// 如果玩家Id有对应的客户端对象(也就是所谓的重复登陆或非正常途径退出)
+	if oldClientId, ok := PlayerAndClientList[playerObj.Id]; ok {
+		// 将玩家与旧的客户端的对应关系删除
+		delete(PlayerAndClientList, playerObj.Id)
+
+		// 再将客户端与旧的玩家对应关系删除
+		delete(ClientAndPlayerList, oldClientId)
+
+		// 将旧的客户端删除
+		delete(ClientList, oldClientId)
+
+		// 不用移除PlayerList中的对象，因为在后面赋值的时候会直接替换旧值
+	}
+
 	// 将玩家对象添加到PlayerList列表中
-	MutexForPlayerList.Lock()
 	PlayerList[playerObj.Id] = playerObj
-	MutexForPlayerList.Unlock()
 
 	// 将玩家对象添加到MutexForClientAndPlayerList列表中
-	MutexForClientAndPlayerList.Lock()
 	ClientAndPlayerList[clientObj.Id] = playerObj.Id
-	MutexForClientAndPlayerList.Unlock()
 
 	// 将玩家对象添加到PlayerAndClientList列表中
-	MutexForPlayerAndClientList.Lock()
 	PlayerAndClientList[playerObj.Id] = clientObj.Id
-	MutexForPlayerAndClientList.Unlock()
 }
 
 // 移除客户端对象
 // removeClient和removePlayer的区别在于：
 // removeClient的在移除Client对象、以及Client与Player的对应关系，同时要将对应的Player也移除，但
 // removePlayer只移除Player以及Player与Client的对应关系，Client对象会继续保留
-// clientObj：客户端对象
 // playerObj：玩家对象
-func removePlayer(clientObj *client.Client, playerObj *player.Player) {
+// clientObj：客户端对象
+func removePlayer(playerObj *player.Player, clientObj *client.Client) {
 	// 清除在PlayerList中的玩家对象
-	MutexForPlayerList.Lock()
 	if _, ok := PlayerList[playerObj.Id]; ok {
 		delete(PlayerList, playerObj.Id)
 	}
-	MutexForPlayerList.Unlock()
 
 	// 清除在PlayerAndClientList中对应的Player
-	MutexForPlayerAndClientList.Lock()
 	if _, ok := PlayerAndClientList[playerObj.Id]; ok {
 		delete(PlayerAndClientList, playerObj.Id)
 	}
-	MutexForPlayerAndClientList.Unlock()
 
 	// 清除在ClientAndPlayerList中对应的Client
-	MutexForClientAndPlayerList.Lock()
 	if _, ok := ClientAndPlayerList[clientObj.Id]; ok {
 		delete(ClientAndPlayerList, clientObj.Id)
 	}
-	MutexForClientAndPlayerList.Unlock()
 }
 
 // 根据客户端对象获取对应的玩家对象
@@ -267,12 +275,8 @@ func removePlayer(clientObj *client.Client, playerObj *player.Player) {
 // 返回值：玩家对象
 func getPlayerByClient(clientObj *client.Client) (*player.Player, bool) {
 	// 先根据客户端Id从ClientAndPlayerList找到对应的PlayerId
-	MutexForClientAndPlayerList.RLock()
-	defer MutexForClientAndPlayerList.RUnlock()
 	if playerId, ok := ClientAndPlayerList[clientObj.Id]; ok {
 		// 然后根据PlayerId从PlayerList找到对应的玩家对象
-		MutexForPlayerList.RLock()
-		defer MutexForPlayerList.RUnlock()
 		if playerObj, ok := PlayerList[playerId]; ok {
 			return playerObj, true
 		}
@@ -286,12 +290,8 @@ func getPlayerByClient(clientObj *client.Client) (*player.Player, bool) {
 // 返回值：客户端对象
 func getClientByPlayer(playerObj *player.Player) (*client.Client, bool) {
 	// 先根据PlayerId从PlayerAndClientList获得ClientId
-	MutexForPlayerAndClientList.RLock()
-	defer MutexForPlayerAndClientList.RUnlock()
 	if clientId, ok := PlayerAndClientList[playerObj.Id]; ok {
 		// 再根据ClientId从ClientList中获得对应的Client对象
-		MutexForClientList.RLock()
-		defer MutexForClientList.RUnlock()
 		if clientObj, ok := ClientList[clientId]; ok {
 			return clientObj, true
 		}
@@ -334,8 +334,7 @@ func getResultStatusResponseObj(responseObj responseDataObject.ResponseObject, r
 // clientObj：对应的客户端对象
 // request：请求内容字节数组(json格式)
 // 返回值：无
-func HanleRequest(clientObj *client.Client, request []byte) {
-	// 定义返回结果对象
+func HanleRequest(clientObj *client.Client, request []byte, clientAddChan, clientRemoveChan, playerAddChan, playerRemoveChan chan *player.PlayerAndClient) {
 	responseObj := getInitResponseObj(commandType.Login)
 
 	// 最后将responseObject发送到客户端
@@ -392,9 +391,9 @@ func HanleRequest(clientObj *client.Client, request []byte) {
 	// 根据不同的请求方法，来调用不同的处理方式
 	switch commandType_real {
 	case commandType.Login:
-		responseObj = login(clientObj, commandType_real, commandMap)
+		responseObj = login(clientObj, commandType_real, commandMap, playerAddChan)
 	case commandType.Logout:
-		responseObj = logout(clientObj, playerObj, commandType_real)
+		responseObj = logout(clientObj, playerObj, commandType_real, playerRemoveChan)
 	case commandType.SendMessage:
 		responseObj = sendMessage(clientObj, playerObj, commandType_real, commandMap)
 	case commandType.UpdatePlayerInfo:
@@ -404,8 +403,7 @@ func HanleRequest(clientObj *client.Client, request []byte) {
 	}
 }
 
-func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[string]interface{}) (responseObj responseDataObject.ResponseObject) {
-	// 定义返回结果对象
+func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[string]interface{}, playerAddChan chan *player.PlayerAndClient) (responseObj responseDataObject.ResponseObject) {
 	responseObj = getInitResponseObj(ct)
 
 	// 解析参数
@@ -456,8 +454,8 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 	// 构造玩家对象
 	playerObj := player.NewPlayer(id, name, unionId, extraMsg)
 
-	// 添加到列表中
-	addPlayer(clientObj, playerObj)
+	// 将玩家对象添加到玩家增加的channel中
+	playerAddChan <- player.NewPlayerAndClient(playerObj, clientObj)
 
 	// 输出结果
 	responseResult(clientObj, responseObj)
@@ -465,12 +463,11 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 	return
 }
 
-func logout(clientObj *client.Client, playerObj *player.Player, ct commandType.CommandType) (responseObj responseDataObject.ResponseObject) {
-	// 定义返回结果对象
+func logout(clientObj *client.Client, playerObj *player.Player, ct commandType.CommandType, playerRemoveChan chan *player.PlayerAndClient) (responseObj responseDataObject.ResponseObject) {
 	responseObj = getInitResponseObj(ct)
 
-	// 移除Client对象
-	removePlayer(clientObj, playerObj)
+	// 将玩家对象添加到玩家移除的channel中
+	playerRemoveChan <- player.NewPlayerAndClient(playerObj, clientObj)
 
 	// 输出结果
 	responseResult(clientObj, responseObj)
@@ -479,7 +476,6 @@ func logout(clientObj *client.Client, playerObj *player.Player, ct commandType.C
 }
 
 func updatePlayerInfo(clientObj *client.Client, playerObj *player.Player, ct commandType.CommandType, commandMap map[string]interface{}) (responseObj responseDataObject.ResponseObject) {
-	// 定义返回结果对象
 	responseObj = getInitResponseObj(ct)
 
 	// 解析参数
@@ -514,7 +510,6 @@ func updatePlayerInfo(clientObj *client.Client, playerObj *player.Player, ct com
 }
 
 func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandType.CommandType, commandMap map[string]interface{}) (responseObj responseDataObject.ResponseObject) {
-	// 定义返回结果对象
 	responseObj = getInitResponseObj(ct)
 
 	// 解析参数
@@ -555,11 +550,9 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 	// 根据不同的聊天隐疾调用不同的片方法
 	switch channelType_real {
 	case channelType.World:
-		MutexForPlayerList.RLock()
 		for _, item := range PlayerList {
 			finalPlayerList = append(finalPlayerList, item)
 		}
-		MutexForPlayerList.RUnlock()
 	case channelType.Union:
 		// 判断公会Id是否为空
 		if playerObj.UnionId == "" {
@@ -568,13 +561,11 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 		}
 
 		// 筛选同一个公会的成员
-		MutexForPlayerList.RLock()
 		for _, item := range PlayerList {
 			if playerObj.UnionId == item.UnionId {
 				finalPlayerList = append(finalPlayerList, item)
 			}
 		}
-		MutexForPlayerList.RUnlock()
 	case channelType.Private:
 		toPlayerId, ok := commandMap["ToPlayerId"].(string)
 		if !ok {
@@ -590,9 +581,7 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 		}
 
 		// 获得目标玩家对象
-		MutexForPlayerList.RLock()
 		toPlayerObj, ifToPlayerExists = PlayerList[toPlayerId]
-		MutexForPlayerList.RUnlock()
 		if !ifToPlayerExists {
 			responseObj = getResultStatusResponseObj(responseObj, responseDataObject.NotFoundTarget)
 			return

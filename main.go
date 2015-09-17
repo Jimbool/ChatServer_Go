@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/chatBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
+	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
 	"github.com/Jordanzuo/goutil/logUtil"
 	"io"
 	"io/ioutil"
@@ -13,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 )
 
 const (
@@ -101,7 +103,11 @@ func setLogPath() {
 
 // 处理客户端逻辑
 // clientObj：客户端对象
-func handleClient(clientObj *client.Client) {
+// clientAddChan: 客户端增加的channel
+// clientRemoveChan: 客户端移除的channel
+// playerAddChan: 玩家增加的channel
+// playerRemoveChan: 玩家移除的channel
+func handleClient(clientObj *client.Client, clientAddChan, clientRemoveChan, playerAddChan, playerRemoveChan chan *player.PlayerAndClient) {
 	for {
 		content, ok := clientObj.GetValieMessage()
 		if !ok {
@@ -112,14 +118,18 @@ func handleClient(clientObj *client.Client) {
 		if len(content) == 0 {
 			continue
 		} else {
-			chatBLL.HanleRequest(clientObj, content)
+			chatBLL.HanleRequest(clientObj, content, clientAddChan, clientRemoveChan, playerAddChan, playerRemoveChan)
 		}
 	}
 }
 
 // 处理客户端连接
 // conn：客户端连接对象
-func handleConn(conn net.Conn) {
+// clientAddChan: 客户端增加的channel
+// clientRemoveChan: 客户端移除的channel
+// playerAddChan: 玩家增加的channel
+// playerRemoveChan: 玩家移除的channel
+func handleConn(conn net.Conn, clientAddChan, clientRemoveChan, playerAddChan, playerRemoveChan chan *player.PlayerAndClient) {
 	// 处理内部未处理的异常，以免导致主线程退出，从而导致系统崩溃
 	defer func() {
 		if r := recover(); r != nil {
@@ -130,12 +140,12 @@ func handleConn(conn net.Conn) {
 	// 创建客户端对象
 	clientObj := client.NewClient(&conn, conn)
 
-	// 将连接添加到列表中
-	chatBLL.AddClient(clientObj)
+	// 将客户端对象添加到客户端增加的channel中
+	clientAddChan <- player.NewPlayerAndClient(nil, clientObj)
 
-	// 最终需要移除列表中的连接，并关闭连接
 	defer func() {
-		chatBLL.RemoveClient(clientObj)
+		// 将客户端对象添加到客户端移除的channel中
+		clientRemoveChan <- player.NewPlayerAndClient(nil, clientObj)
 	}()
 
 	// 无限循环，不断地读取数据，解析数据，处理数据
@@ -162,7 +172,7 @@ func handleConn(conn net.Conn) {
 		clientObj.AppendContent(readBytes[:n])
 
 		// 处理该数据
-		handleClient(clientObj)
+		handleClient(clientObj, clientAddChan, clientRemoveChan, playerAddChan, playerRemoveChan)
 	}
 }
 
@@ -196,7 +206,7 @@ func startServer(ch chan int) {
 		fmt.Printf("Established a connection with a client application. (remote address: %s)\n", conn.RemoteAddr())
 
 		// 启动一个新协程来处理链接
-		go handleConn(conn)
+		go handleConn(conn, chatBLL.ClientAddChan, chatBLL.ClientRemoveChan, chatBLL.PlayerAddChan, chatBLL.PlayerRemoveChan)
 	}
 }
 
@@ -209,8 +219,12 @@ func main() {
 	// 通过解析从启动服务器的coroutine中返回的值，来判断启动的结果；0表示启动失败，非0表示启动成功
 	if <-ch == 0 {
 		errMsg := "服务器启动失败，请检查配置"
-		fmt.Println(errMsg)
+
 		logUtil.Log(errMsg, logUtil.Error, true)
+		fmt.Println(errMsg)
+
+		// 先休眠5秒再退出，以便于在Windows上可以看到提示信息
+		time.Sleep(5 * time.Second)
 		os.Exit(1)
 	} else {
 		fmt.Println("服务器启动成功，等待客户端的接入。。。")
