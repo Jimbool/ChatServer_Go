@@ -112,7 +112,8 @@ func handleChannel(clientAddChan, clientRemoveChan, playerAddChan, playerRemoveC
 		case playerAndClientObj := <-playerRemoveChan:
 			removePlayer(playerAndClientObj.Player, playerAndClientObj.Client)
 		default:
-			// 不做任何操作，只是为了避免阻塞
+			// 休眠一下，防止CPU过高
+			time.Sleep(time.Second)
 		}
 	}
 }
