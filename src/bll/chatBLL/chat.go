@@ -144,19 +144,8 @@ func clearExpiredClient(clientRemoveChan chan *player.PlayerAndClient) {
 			clientRemoveChan <- player.NewPlayerAndClient(nil, item)
 		}
 
-		// 清理之后的客户端数量和玩家数量
-		afterClientCount := len(ClientList)
-		afterPlayerCount := len(PlayerList)
-
 		// 记录日志
-		logUtil.Log(
-			fmt.Sprintf("清理前的客户端数量为：%d， 清理前的玩家数量为：%d， 本次清理不活跃的数量为：%d，清理后的客户端数量为：%d，清理后的玩家数量为：%d",
-				beforeClientCount, beforePlayerCount, expiredClientCount, afterClientCount, afterPlayerCount),
-			logUtil.Debug,
-			true,
-		)
-
-		fmt.Println("当前玩家数量：", afterPlayerCount)
+		logUtil.Log(fmt.Sprintf("清理前的客户端数量为：%d， 清理前的玩家数量为：%d， 本次清理不活跃的数量为：%d", beforeClientCount, beforePlayerCount, expiredClientCount), logUtil.Debug, true)
 
 		// 休眠指定的时间（单位：秒）
 		time.Sleep(CheckExpiredInterval * time.Second)
