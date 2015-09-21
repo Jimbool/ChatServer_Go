@@ -40,10 +40,10 @@ var (
 	PlayerAndClientList = make(map[string]*net.Conn)
 
 	// 定义增加、删除客户端channel；增加、删除玩家的channel
-	ClientAddChan    = make(chan *player.PlayerAndClient)
-	ClientRemoveChan = make(chan *player.PlayerAndClient)
-	PlayerAddChan    = make(chan *player.PlayerAndClient)
-	PlayerRemoveChan = make(chan *player.PlayerAndClient)
+	ClientAddChan    = make(chan *player.PlayerAndClient, 100)
+	ClientRemoveChan = make(chan *player.PlayerAndClient, 100)
+	PlayerAddChan    = make(chan *player.PlayerAndClient, 100)
+	PlayerRemoveChan = make(chan *player.PlayerAndClient, 100)
 )
 
 // 设置参数

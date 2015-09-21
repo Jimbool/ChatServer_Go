@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/chatBLL"
+	"github.com/Jordanzuo/ChatServer_Go/src/bll/webBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
 	"github.com/Jordanzuo/goutil/logUtil"
 	"io"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -31,6 +33,9 @@ const (
 var (
 	// 服务器监听地址
 	ServerAddress string
+
+	// Web服务器监听地址
+	WebServerAddress string
 )
 
 func init() {
@@ -88,8 +93,21 @@ func setParam(config map[string]interface{}) {
 		panic(errors.New("SERVER_PORT必须是int型"))
 	}
 
+	// Web_SERVER_PORT
+	webServerPort, ok := config["Web_SERVER_PORT"]
+	if !ok {
+		panic(errors.New("不存在名为Web_SERVER_PORT的配置或配置为空"))
+	}
+	webServerPort_int, ok := webServerPort.(float64)
+	if !ok {
+		panic(errors.New("Web_SERVER_PORT必须是int型"))
+	}
+
 	// 设置ServerAddress
 	ServerAddress = fmt.Sprintf("%s:%d", serverHost_string, int(serverPort_int))
+
+	// 设置WebServerAddress
+	WebServerAddress = fmt.Sprintf(":%d", int(webServerPort_int))
 }
 
 // 设置日志文件路径
@@ -177,23 +195,23 @@ func handleConn(conn net.Conn, clientAddChan, clientRemoveChan, playerAddChan, p
 }
 
 // 启动服务器
-// ch：用于与main线程传递消息的channel：向ch写入0表示启动服务器失败，写入1表示成功
+// ch：用于与main线程传递消息的channel：向ch写入0表示启动服务器成功，1表示失败
 func startServer(ch chan int) {
 	// 监听指定的端口
 	listener, err := net.Listen(SERVER_NETWORK, ServerAddress)
 	if err != nil {
 		logUtil.Log(fmt.Sprintf("Listen Error: %s", err), logUtil.Error, true)
-		ch <- 0
+		ch <- 1
 		return
+	} else {
+		// 写入0表示启动成功，则main线程可以继续往下进行
+		ch <- 0
+		logUtil.Log(fmt.Sprintf("Got listener for the server. (local address: %s)", listener.Addr()), logUtil.Debug, true)
 	}
 	defer func() {
 		listener.Close()
 		ch <- 1
 	}()
-
-	// 写入1表示启动成功，则main线程可以继续往下进行
-	ch <- 1
-	logUtil.Log(fmt.Sprintf("Got listener for the server. (local address: %s)", listener.Addr()), logUtil.Debug, true)
 
 	for {
 		// 阻塞直至新连接到来
@@ -210,6 +228,26 @@ func startServer(ch chan int) {
 	}
 }
 
+// 启动web服务器
+// ch：用于与main线程传递消息的channel：向ch写入0表示启动服务器成功，2表示失败
+func startWebServer(ch chan int) {
+	defer func() {
+		ch <- 2
+	}()
+
+	http.HandleFunc("/", webBLL.ReceiveMessage)
+	fmt.Println("WebServerAddress", WebServerAddress)
+	err := http.ListenAndServe(":9000", nil)
+	if err != nil {
+		logUtil.Log(fmt.Sprintf("ListenAndServer:", err), logUtil.Error, true)
+		ch <- 2
+	} else {
+		// 写入0表示启动成功，则main线程可以继续往下进行
+		ch <- 0
+		logUtil.Log(fmt.Sprintf("Web server start successfully. (local address: %s)", WebServerAddress), logUtil.Debug, true)
+	}
+}
+
 func main() {
 	ch := make(chan int)
 
@@ -217,8 +255,8 @@ func main() {
 	go startServer(ch)
 
 	// 通过解析从启动服务器的coroutine中返回的值，来判断启动的结果；0表示启动失败，非0表示启动成功
-	if <-ch == 0 {
-		errMsg := "服务器启动失败，请检查配置"
+	if <-ch == 1 {
+		errMsg := "Socket服务器启动失败，请检查配置"
 
 		logUtil.Log(errMsg, logUtil.Error, true)
 		fmt.Println(errMsg)
@@ -227,7 +265,7 @@ func main() {
 		time.Sleep(5 * time.Second)
 		os.Exit(1)
 	} else {
-		fmt.Println("服务器启动成功，等待客户端的接入。。。")
+		fmt.Println("Socket服务器启动成功，等待客户端的接入。。。")
 	}
 
 	// 阻塞，等待输出，以免main线程退出
