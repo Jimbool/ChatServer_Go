@@ -171,6 +171,11 @@ func handleConn(conn net.Conn, clientAddChan, clientRemoveChan, playerAddChan, p
 
 	// 无限循环，不断地读取数据，解析数据，处理数据
 	for {
+		// 判断clientObj对象是否还存在（即是否已经被移除了）
+		if _, ok := chatBLL.ClientList[clientId]; !ok {
+			break
+		}
+
 		// 先读取数据，每次读取1024个字节
 		readBytes := make([]byte, 1024)
 		n, err := conn.Read(readBytes)
@@ -186,11 +191,6 @@ func handleConn(conn net.Conn, clientAddChan, clientRemoveChan, playerAddChan, p
 
 			logUtil.Log(errMsg, logUtil.Error, true)
 
-			break
-		}
-
-		// 判断clientObj对象是否还存在（即是否已经被移除了）
-		if _, ok := chatBLL.ClientList[clientId]; !ok {
 			break
 		}
 
