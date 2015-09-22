@@ -40,8 +40,8 @@ var (
 	PlayerAndClientList = make(map[string]*net.Conn)
 
 	// 定义增加、删除客户端channel；增加、删除玩家的channel
-	ClientAddChan    = make(chan *player.PlayerAndClient, 100)
-	ClientRemoveChan = make(chan *player.PlayerAndClient, 100)
+	ClientAddChan    = make(chan *player.PlayerAndClient)
+	ClientRemoveChan = make(chan *player.PlayerAndClient)
 	PlayerAddChan    = make(chan *player.PlayerAndClient, 100)
 	PlayerRemoveChan = make(chan *player.PlayerAndClient, 100)
 )
@@ -101,6 +101,13 @@ func SetParam(config map[string]interface{}) {
 // playerAddChan: 玩家增加的channel
 // playerRemoveChan: 玩家移除的channel
 func handleChannel(clientAddChan, clientRemoveChan, playerAddChan, playerRemoveChan chan *player.PlayerAndClient) {
+	// 处理内部未处理的异常，以免导致主线程退出，从而导致系统崩溃
+	defer func() {
+		if r := recover(); r != nil {
+			logUtil.Log(fmt.Sprintf("通过recover捕捉到的未处理异常：%v", r), logUtil.Error, true)
+		}
+	}()
+
 	for {
 		select {
 		case playerAndClientObj := <-clientAddChan:

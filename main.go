@@ -158,11 +158,14 @@ func handleConn(conn net.Conn, clientAddChan, clientRemoveChan, playerAddChan, p
 	// 创建客户端对象
 	clientObj := client.NewClient(&conn, conn)
 
+	// 将clientObj的唯一标识保存起来，用于在后面判断对象是否已经被移除，不能使用clientObj.Id或&conn，因为它们可能已经会被销毁
+	clientId := clientObj.Id
+
 	// 将客户端对象添加到客户端增加的channel中
 	clientAddChan <- player.NewPlayerAndClient(nil, clientObj)
 
+	// 将客户端对象添加到客户端移除的channel中
 	defer func() {
-		// 将客户端对象添加到客户端移除的channel中
 		clientRemoveChan <- player.NewPlayerAndClient(nil, clientObj)
 	}()
 
@@ -183,6 +186,11 @@ func handleConn(conn net.Conn, clientAddChan, clientRemoveChan, playerAddChan, p
 
 			logUtil.Log(errMsg, logUtil.Error, true)
 
+			break
+		}
+
+		// 判断clientObj对象是否还存在（即是否已经被移除了）
+		if _, ok := chatBLL.ClientList[clientId]; !ok {
 			break
 		}
 
