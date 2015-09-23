@@ -3,9 +3,7 @@ package client
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"github.com/Jordanzuo/goutil/intAndBytesUtil"
-	"github.com/Jordanzuo/goutil/logUtil"
 	"net"
 	"time"
 )
@@ -49,6 +47,9 @@ type Client struct {
 	// 客户端连接对象
 	Conn net.Conn
 
+	// 玩家Id
+	PlayerId string
+
 	// 私有属性，内部使用
 	// 接收到的消息内容
 	content []byte
@@ -64,13 +65,27 @@ type Client struct {
 func NewClient(id *net.Conn, conn net.Conn) *Client {
 	return &Client{
 		// 公共属性赋值
-		Id:   id,
-		Conn: conn,
+		Id:       id,
+		Conn:     conn,
+		PlayerId: "",
 
 		// 私有属性赋值
 		content:    make([]byte, 0, 1024),
 		activeTime: time.Now(),
 	}
+}
+
+// 玩家登陆
+// playerId：玩家Id
+// 返回值：无
+func (c *Client) PlayerLogin(playerId string) {
+	c.PlayerId = playerId
+}
+
+// 玩家登出
+// 返回值：无
+func (c *Client) PlayerLogout() {
+	c.PlayerId = ""
 }
 
 // 追加内容
@@ -145,14 +160,16 @@ func (c *Client) SendByteMessage(b []byte) {
 	message := append(header, b...)
 
 	// 发送消息
-	_, err := c.Conn.Write(message)
-	if err != nil {
-		logUtil.Log(fmt.Sprintf("发送数据错误：%s", err), logUtil.Error, true)
-	}
+	c.Conn.Write(message)
 }
 
 // 判断客户端是否超时
 // 返回值：是否超时
 func (c *Client) IfExpired() bool {
 	return c.activeTime.Add(ClientExpiredSeconds*time.Second).Unix() < time.Now().Unix()
+}
+
+// 退出
+func (c *Client) Quit() {
+	c.Conn.Close()
 }

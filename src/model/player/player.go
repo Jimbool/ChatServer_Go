@@ -1,5 +1,9 @@
 package player
 
+import (
+	"net"
+)
+
 // 定义玩家对象
 type Player struct {
 	// 玩家Id
@@ -13,6 +17,9 @@ type Player struct {
 
 	// 玩家额外信息
 	ExtraMsg interface{}
+
+	// 客户端Id
+	ClientId *net.Conn
 }
 
 // 构造新的Plyaer对象
@@ -20,12 +27,13 @@ type Player struct {
 // name：玩家名称
 // unionId：玩家所在公会的Id
 // extraData；额外信息
-func NewPlayer(id, name, unionId string, extraMsg interface{}) *Player {
+func NewPlayer(id, name, unionId string, extraMsg interface{}, clientId *net.Conn) *Player {
 	return &Player{
 		Id:       id,
 		Name:     name,
 		UnionId:  unionId,
 		ExtraMsg: extraMsg,
+		ClientId: clientId,
 	}
 }
 
