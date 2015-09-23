@@ -586,8 +586,9 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 	// 遍历，向玩家发送消息
 	for _, item := range finalPlayerList {
 		// 根据Player对象获得Client对象
-		finalClientObj, _ := getClientByPlayer(item)
-		responseResult(finalClientObj, responseObj)
+		if finalClientObj, ok := getClientByPlayer(item); ok {
+			responseResult(finalClientObj, responseObj)
+		}
 	}
 
 	return
