@@ -121,7 +121,9 @@ func setLogPath() {
 // 显示数据大小信息
 func displayDataSize() {
 	for {
-		fmt.Printf("%s:总共收到%s，发送%s\n", timeUtil.Format(time.Now(), "yyyy-MM-dd HH:mm:ss"), mathUtil.GetSizeDesc(client.TotalReceiveSize), mathUtil.GetSizeDesc(client.TotalSendSize))
+		msg := fmt.Sprintf("%s:总共收到%s，发送%s\n", timeUtil.Format(time.Now(), "yyyy-MM-dd HH:mm:ss"), mathUtil.GetSizeDesc(client.TotalReceiveSize), mathUtil.GetSizeDesc(client.TotalSendSize))
+		fmt.Println(msg)
+		logUtil.Log(msg, logUtil.Debug, true)
 		time.Sleep(time.Minute)
 	}
 }
