@@ -10,6 +10,7 @@ import (
 	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
 	"github.com/Jordanzuo/goutil/logUtil"
 	"github.com/Jordanzuo/goutil/mathUtil"
+	"github.com/Jordanzuo/goutil/stringUtil"
 	"github.com/Jordanzuo/goutil/timeUtil"
 	"io"
 	"io/ioutil"
@@ -121,7 +122,11 @@ func setLogPath() {
 // 显示数据大小信息
 func displayDataSize() {
 	for {
-		fmt.Printf("%s:总共收到%s，发送%s\n", timeUtil.Format(time.Now(), "yyyy-MM-dd HH:mm:ss"), mathUtil.GetSizeDesc(client.TotalReceiveSize), mathUtil.GetSizeDesc(client.TotalSendSize))
+		msg := fmt.Sprintf("%s:总共收到%s，发送%s", timeUtil.Format(time.Now(), "yyyy-MM-dd HH:mm:ss"), mathUtil.GetSizeDesc(client.TotalReceiveSize), mathUtil.GetSizeDesc(client.TotalSendSize))
+		msg += stringUtil.GetNewLineString()
+		msg += fmt.Sprintf("当前客户端数量：%d, 当前玩家数量：%d", len(chatBLL.ClientList), len(chatBLL.PlayerList))
+		fmt.Println(msg)
+		logUtil.Log(msg, logUtil.Debug, true)
 		time.Sleep(time.Minute)
 	}
 }
