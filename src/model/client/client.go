@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/Jordanzuo/goutil/intAndBytesUtil"
 	"net"
+	"sync/atomic"
 	"time"
 )
 
@@ -19,6 +20,12 @@ var (
 
 	// 客户端过期的秒数
 	ClientExpiredSeconds time.Duration
+
+	// 收到的总数据大小，以M为单位
+	TotalReceiveSize int64
+
+	// 发送的总数据大小，以M为单位
+	TotalSendSize int64
 )
 
 // 设置参数
@@ -94,6 +101,9 @@ func (c *Client) PlayerLogout() {
 func (c *Client) AppendContent(content []byte) {
 	c.content = append(c.content, content...)
 	c.activeTime = time.Now()
+
+	// 增加接收量
+	TotalReceiveSize = atomic.AddInt64(&TotalReceiveSize, int64(len(content)))
 }
 
 // 判断当前已经收到的消息是否为有效消息（即已经收到了完整的信息）
@@ -158,6 +168,9 @@ func (c *Client) SendByteMessage(b []byte) {
 
 	// 将头部与内容组合在一起
 	message := append(header, b...)
+
+	// 增加发送量
+	TotalSendSize = atomic.AddInt64(&TotalSendSize, int64(contentLength))
 
 	// 发送消息
 	c.Conn.Write(message)

@@ -37,8 +37,8 @@ var (
 	// 定义增加、删除客户端channel；增加、删除玩家的channel
 	ClientAddChan    = make(chan *player.PlayerAndClient)
 	ClientRemoveChan = make(chan *player.PlayerAndClient)
-	PlayerAddChan    = make(chan *player.PlayerAndClient)
-	PlayerRemoveChan = make(chan *player.PlayerAndClient)
+	PlayerAddChan    = make(chan *player.PlayerAndClient, 50)
+	PlayerRemoveChan = make(chan *player.PlayerAndClient, 50)
 )
 
 // 设置参数
@@ -83,11 +83,11 @@ func SetParam(config map[string]interface{}) {
 	// 设置参数MaxMsgLength
 	MaxMsgLength = int(maxMsgLength_int)
 
-	// 启动清理过期客户端连接的gorountine
-	go clearExpiredClient(ClientRemoveChan)
-
 	// 启动处理增加、删除客户端channel；增加、删除玩家的channel的gorountine
 	go handleChannel(ClientAddChan, ClientRemoveChan, PlayerAddChan, PlayerRemoveChan)
+
+	// 启动清理过期客户端连接的gorountine
+	// go clearExpiredClient(ClientRemoveChan)
 }
 
 // 显示在线数量
@@ -124,7 +124,7 @@ func handleChannel(clientAddChan, clientRemoveChan, playerAddChan, playerRemoveC
 			displayOnlineCount()
 		default:
 			// 休眠一下，防止CPU过高
-			time.Sleep(time.Second)
+			time.Sleep(50 * time.Millisecond)
 		}
 	}
 }
@@ -184,16 +184,13 @@ func addClient(clientObj *client.Client) {
 // 由于客户端对象与玩家对象之间可能已经建立了对应关系，所以在移除完客户端对象后，还需要移除客户端对象和玩家对象之间的对应关系（如果存在对应关系）
 // clientObj：客户端对象
 func removeClient(clientObj *client.Client) {
-	// 获得客户端对应的玩家Id
-	playerId := clientObj.PlayerId
+	// 清除在PlayerList中的玩家对象
+	if clientObj.PlayerId != "" {
+		delete(PlayerList, clientObj.PlayerId)
+	}
 
 	// 删除客户端
 	delete(ClientList, clientObj.Id)
-
-	// 清除在PlayerList中的玩家对象
-	if playerId != "" {
-		delete(PlayerList, playerId)
-	}
 }
 
 // 添加玩家对象

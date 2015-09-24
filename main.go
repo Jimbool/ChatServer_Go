@@ -9,6 +9,8 @@ import (
 	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
 	"github.com/Jordanzuo/goutil/logUtil"
+	"github.com/Jordanzuo/goutil/mathUtil"
+	"github.com/Jordanzuo/goutil/timeUtil"
 	"io"
 	"io/ioutil"
 	"net"
@@ -16,6 +18,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 )
 
 const (
@@ -113,6 +116,14 @@ func setLogPath() {
 	logPath := filepath.Dir(path)
 
 	logUtil.SetLogPath(filepath.Join(logPath, LOG_PATH_SUFFIX))
+}
+
+// 显示数据大小信息
+func displayDataSize() {
+	for {
+		fmt.Printf("%s:总共收到%s，发送%s\n", timeUtil.Format(time.Now(), "yyyy-MM-dd HH:mm:ss"), mathUtil.GetSizeDesc(client.TotalReceiveSize), mathUtil.GetSizeDesc(client.TotalSendSize))
+		time.Sleep(time.Minute)
+	}
 }
 
 // 处理客户端逻辑
@@ -255,6 +266,9 @@ func main() {
 	} else {
 		fmt.Println("Socket服务器启动成功，等待客户端的接入。。。")
 	}
+
+	// 定时显示数据大小信息
+	go displayDataSize()
 
 	// 阻塞，等待输出，以免main线程退出
 	<-ch
