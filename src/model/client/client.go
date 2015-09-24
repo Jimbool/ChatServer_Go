@@ -103,7 +103,7 @@ func (c *Client) AppendContent(content []byte) {
 	c.activeTime = time.Now()
 
 	// 增加接收量
-	TotalReceiveSize = atomic.AddInt64(&TotalReceiveSize, int64(len(content)))
+	atomic.AddInt64(&TotalReceiveSize, int64(len(content)))
 }
 
 // 判断当前已经收到的消息是否为有效消息（即已经收到了完整的信息）
@@ -170,7 +170,7 @@ func (c *Client) SendByteMessage(b []byte) {
 	message := append(header, b...)
 
 	// 增加发送量
-	TotalSendSize = atomic.AddInt64(&TotalSendSize, int64(contentLength))
+	atomic.AddInt64(&TotalSendSize, int64(contentLength))
 
 	// 发送消息
 	c.Conn.Write(message)
