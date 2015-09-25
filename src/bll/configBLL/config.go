@@ -17,9 +17,6 @@ var (
 	// 服务器监听地址
 	ServerAddress string
 
-	// Web服务器监听地址
-	WebServerAddress string
-
 	// 服务端检测过期客户端的时间间隔，单位：秒
 	CheckExpiredInterval time.Duration
 
@@ -68,21 +65,8 @@ func init() {
 		panic(errors.New("SERVER_PORT必须是int型"))
 	}
 
-	// Web_SERVER_PORT
-	webServerPort, ok := config["Web_SERVER_PORT"]
-	if !ok {
-		panic(errors.New("不存在名为Web_SERVER_PORT的配置或配置为空"))
-	}
-	webServerPort_int, ok := webServerPort.(float64)
-	if !ok {
-		panic(errors.New("Web_SERVER_PORT必须是int型"))
-	}
-
 	// 设置ServerAddress
 	ServerAddress = fmt.Sprintf("%s:%d", serverHost_string, int(serverPort_int))
-
-	// 设置WebServerAddress
-	WebServerAddress = fmt.Sprintf("%s:%d", serverHost_string, int(webServerPort_int))
 
 	// 解析CHECK_EXPIRED_INTERVAL
 	checkExpiredInterval, ok := config["CHECK_EXPIRED_INTERVAL"]

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/chatBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/configBLL"
-	"github.com/Jordanzuo/ChatServer_Go/src/bll/webBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
 	"github.com/Jordanzuo/goutil/logUtil"
@@ -13,7 +12,6 @@ import (
 	"github.com/Jordanzuo/goutil/timeUtil"
 	"io"
 	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -162,21 +160,7 @@ func startServer(ch chan int) {
 	}
 }
 
-// 启动web服务器
-func startWebServer() {
-	// 设定路由
-	http.HandleFunc("/", webBLL.ReceiveMessage)
-
-	// 启动监听服务器
-	if err := http.ListenAndServe(configBLL.WebServerAddress, nil); err != nil {
-		logUtil.Log(fmt.Sprintf("ListenAndServer Error:%s", err), logUtil.Error, true)
-	}
-}
-
 func main() {
-	// 启动web服务器
-	go startWebServer()
-
 	// 启动服务器
 	ch := make(chan int)
 	go startServer(ch)
