@@ -21,10 +21,7 @@ import (
 )
 
 const (
-	// 服务器网络协议
-	SERVER_NETWORK = "tcp"
-
-	// 日志文件路径前缀
+	// 日志文件路径后缀
 	LOG_PATH_SUFFIX = "LOG"
 )
 
@@ -43,9 +40,12 @@ func displayDataSize() {
 		// 刚启动时不需要显示信息，故将Sleep放在前面，而不是最后
 		time.Sleep(time.Minute)
 
+		// 组装需要记录的消息
 		msg := fmt.Sprintf("%s:总共收到%s，发送%s", timeUtil.Format(time.Now(), "yyyy-MM-dd HH:mm:ss"), mathUtil.GetSizeDesc(client.TotalReceiveSize), mathUtil.GetSizeDesc(client.TotalSendSize))
 		msg += stringUtil.GetNewLineString()
 		msg += fmt.Sprintf("当前客户端数量：%d, 当前玩家数量：%d", len(chatBLL.ClientList), len(chatBLL.PlayerList))
+
+		// 显示在控制台上，是为了便于本地使用；记录到日志文件是为了便于生产环境使用
 		fmt.Println(msg)
 		logUtil.Log(msg, logUtil.Debug, true)
 	}
@@ -131,7 +131,7 @@ func handleConn(conn net.Conn, clientAddChan, clientRemoveChan, playerAddChan, p
 // ch：用于与main线程传递消息的channel：向ch写入0表示启动服务器成功，1表示失败
 func startServer(ch chan int) {
 	// 监听指定的端口
-	listener, err := net.Listen(SERVER_NETWORK, configBLL.ServerAddress)
+	listener, err := net.Listen("tcp", configBLL.ServerAddress)
 	if err != nil {
 		logUtil.Log(fmt.Sprintf("Listen Error: %s", err), logUtil.Error, true)
 		ch <- 1
