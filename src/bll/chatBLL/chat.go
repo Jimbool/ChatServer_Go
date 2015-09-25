@@ -13,7 +13,6 @@ import (
 	"github.com/Jordanzuo/goutil/logUtil"
 	"github.com/Jordanzuo/goutil/securityUtil"
 	"github.com/Jordanzuo/goutil/stringUtil"
-	"github.com/Jordanzuo/goutil/timeUtil"
 	"net"
 	"time"
 )
