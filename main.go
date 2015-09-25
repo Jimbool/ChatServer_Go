@@ -1,11 +1,10 @@
 package main
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/chatBLL"
-	"github.com/Jordanzuo/ChatServer_Go/src/bll/webBLL"
+	"github.com/Jordanzuo/ChatServer_Go/src/bll/configBLL"
+	// "github.com/Jordanzuo/ChatServer_Go/src/bll/webBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
 	"github.com/Jordanzuo/goutil/logUtil"
@@ -13,9 +12,8 @@ import (
 	"github.com/Jordanzuo/goutil/stringUtil"
 	"github.com/Jordanzuo/goutil/timeUtil"
 	"io"
-	"io/ioutil"
 	"net"
-	"net/http"
+	// "net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,9 +21,6 @@ import (
 )
 
 const (
-	// 配置文件名称
-	CONFIG_FILE_NAME = "config.ini"
-
 	// 服务器网络协议
 	SERVER_NETWORK = "tcp"
 
@@ -33,85 +28,8 @@ const (
 	LOG_PATH_SUFFIX = "LOG"
 )
 
-var (
-	// 服务器监听地址
-	ServerAddress string
-
-	// Web服务器监听地址
-	WebServerAddress string
-)
-
 func init() {
-	// 由于服务器的运行依赖于init中执行的逻辑，所以如果出现任何的错误都直接panic，让程序启动失败；而不是让它启动成功，但是在运行时出现错误
-
-	// 读取配置文件（一次性读取整个文件，则使用ioutil）
-	bytes, err := ioutil.ReadFile(CONFIG_FILE_NAME)
-	if err != nil {
-		panic(err)
-	}
-
-	// 使用json反序列化
-	config := make(map[string]interface{})
-	if err = json.Unmarshal(bytes, &config); err != nil {
-		panic(err)
-	}
-
-	// 本方法内的参数一定需要优先设置，因为这里面的设置是全局的设置，在其它的包内可能会被用到
-	// 设置本文件中所需参数
-	setParam(config)
-
 	// 设置日志文件的存储目录
-	setLogPath()
-
-	// 设置chatBLL的参数
-	chatBLL.SetParam(config)
-
-	// 设置client的参数
-	client.SetParam(config)
-}
-
-// 设置参数
-// config：从配置文件里面解析出来的配置内容
-func setParam(config map[string]interface{}) {
-	// 解析SERVER_HOST
-	serverHost, ok := config["SERVER_HOST"]
-	if !ok {
-		panic(errors.New("不存在名为SERVER_HOST的配置或配置为空"))
-	}
-	serverHost_string, ok := serverHost.(string)
-	if !ok {
-		panic(errors.New("SERVER_HOST必须是字符串类型"))
-	}
-
-	// SERVER_PORT
-	serverPort, ok := config["SERVER_PORT"]
-	if !ok {
-		panic(errors.New("不存在名为SERVER_PORT的配置或配置为空"))
-	}
-	serverPort_int, ok := serverPort.(float64)
-	if !ok {
-		panic(errors.New("SERVER_PORT必须是int型"))
-	}
-
-	// Web_SERVER_PORT
-	webServerPort, ok := config["Web_SERVER_PORT"]
-	if !ok {
-		panic(errors.New("不存在名为Web_SERVER_PORT的配置或配置为空"))
-	}
-	webServerPort_int, ok := webServerPort.(float64)
-	if !ok {
-		panic(errors.New("Web_SERVER_PORT必须是int型"))
-	}
-
-	// 设置ServerAddress
-	ServerAddress = fmt.Sprintf("%s:%d", serverHost_string, int(serverPort_int))
-
-	// 设置WebServerAddress
-	WebServerAddress = fmt.Sprintf(":%d", int(webServerPort_int))
-}
-
-// 设置日志文件路径
-func setLogPath() {
 	file, _ := exec.LookPath(os.Args[0])
 	path, _ := filepath.Abs(file)
 	logPath := filepath.Dir(path)
@@ -119,15 +37,17 @@ func setLogPath() {
 	logUtil.SetLogPath(filepath.Join(logPath, LOG_PATH_SUFFIX))
 }
 
-// 显示数据大小信息
+// 显示数据大小信息(每分钟更新一次)
 func displayDataSize() {
 	for {
+		// 刚启动时不需要显示信息，故将Sleep放在前面，而不是最后
+		time.Sleep(time.Minute)
+
 		msg := fmt.Sprintf("%s:总共收到%s，发送%s", timeUtil.Format(time.Now(), "yyyy-MM-dd HH:mm:ss"), mathUtil.GetSizeDesc(client.TotalReceiveSize), mathUtil.GetSizeDesc(client.TotalSendSize))
 		msg += stringUtil.GetNewLineString()
 		msg += fmt.Sprintf("当前客户端数量：%d, 当前玩家数量：%d", len(chatBLL.ClientList), len(chatBLL.PlayerList))
 		fmt.Println(msg)
 		logUtil.Log(msg, logUtil.Debug, true)
-		time.Sleep(time.Minute)
 	}
 }
 
@@ -182,6 +102,7 @@ func handleConn(conn net.Conn, clientAddChan, clientRemoveChan, playerAddChan, p
 	for {
 		// 先读取数据，每次读取1024个字节
 		readBytes := make([]byte, 1024)
+		// Read方法会阻塞，所以不用考虑异步的方式
 		n, err := conn.Read(readBytes)
 		if err != nil {
 			var errMsg string
@@ -210,7 +131,7 @@ func handleConn(conn net.Conn, clientAddChan, clientRemoveChan, playerAddChan, p
 // ch：用于与main线程传递消息的channel：向ch写入0表示启动服务器成功，1表示失败
 func startServer(ch chan int) {
 	// 监听指定的端口
-	listener, err := net.Listen(SERVER_NETWORK, ServerAddress)
+	listener, err := net.Listen(SERVER_NETWORK, configBLL.ServerAddress)
 	if err != nil {
 		logUtil.Log(fmt.Sprintf("Listen Error: %s", err), logUtil.Error, true)
 		ch <- 1
@@ -238,25 +159,25 @@ func startServer(ch chan int) {
 	}
 }
 
-// 启动web服务器
-// ch：用于与main线程传递消息的channel：向ch写入0表示启动服务器成功，2表示失败
-func startWebServer(ch chan int) {
-	defer func() {
-		ch <- 2
-	}()
+// // 启动web服务器
+// // ch：用于与main线程传递消息的channel：向ch写入0表示启动服务器成功，2表示失败
+// func startWebServer(ch chan int) {
+// 	defer func() {
+// 		ch <- 2
+// 	}()
 
-	http.HandleFunc("/", webBLL.ReceiveMessage)
-	fmt.Println("WebServerAddress", WebServerAddress)
-	err := http.ListenAndServe(":9000", nil)
-	if err != nil {
-		logUtil.Log(fmt.Sprintf("ListenAndServer:", err), logUtil.Error, true)
-		ch <- 2
-	} else {
-		// 写入0表示启动成功，则main线程可以继续往下进行
-		ch <- 0
-		logUtil.Log(fmt.Sprintf("Web server start successfully. (local address: %s)", WebServerAddress), logUtil.Debug, true)
-	}
-}
+// 	http.HandleFunc("/", webBLL.ReceiveMessage)
+// 	fmt.Println("WebServerAddress", WebServerAddress)
+// 	err := http.ListenAndServe(":9000", nil)
+// 	if err != nil {
+// 		logUtil.Log(fmt.Sprintf("ListenAndServer:", err), logUtil.Error, true)
+// 		ch <- 2
+// 	} else {
+// 		// 写入0表示启动成功，则main线程可以继续往下进行
+// 		ch <- 0
+// 		logUtil.Log(fmt.Sprintf("Web server start successfully. (local address: %s)", WebServerAddress), logUtil.Debug, true)
+// 	}
+// }
 
 func main() {
 	ch := make(chan int)
