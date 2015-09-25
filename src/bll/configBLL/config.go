@@ -82,7 +82,7 @@ func init() {
 	ServerAddress = fmt.Sprintf("%s:%d", serverHost_string, int(serverPort_int))
 
 	// 设置WebServerAddress
-	WebServerAddress = fmt.Sprintf(":%d", int(webServerPort_int))
+	WebServerAddress = fmt.Sprintf("%s:%d", serverHost_string, int(webServerPort_int))
 
 	// 解析CHECK_EXPIRED_INTERVAL
 	checkExpiredInterval, ok := config["CHECK_EXPIRED_INTERVAL"]

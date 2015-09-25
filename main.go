@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/chatBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/configBLL"
-	// "github.com/Jordanzuo/ChatServer_Go/src/bll/webBLL"
+	"github.com/Jordanzuo/ChatServer_Go/src/bll/webBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
 	"github.com/Jordanzuo/goutil/logUtil"
@@ -13,7 +13,7 @@ import (
 	"github.com/Jordanzuo/goutil/timeUtil"
 	"io"
 	"net"
-	// "net/http"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -146,6 +146,9 @@ func startServer(ch chan int) {
 		ch <- 1
 	}()
 
+	// 定时显示数据大小信息
+	go displayDataSize()
+
 	for {
 		// 阻塞直至新连接到来
 		conn, err := listener.Accept()
@@ -159,30 +162,23 @@ func startServer(ch chan int) {
 	}
 }
 
-// // 启动web服务器
-// // ch：用于与main线程传递消息的channel：向ch写入0表示启动服务器成功，2表示失败
-// func startWebServer(ch chan int) {
-// 	defer func() {
-// 		ch <- 2
-// 	}()
+// 启动web服务器
+func startWebServer() {
+	// 设定路由
+	http.HandleFunc("/", webBLL.ReceiveMessage)
 
-// 	http.HandleFunc("/", webBLL.ReceiveMessage)
-// 	fmt.Println("WebServerAddress", WebServerAddress)
-// 	err := http.ListenAndServe(":9000", nil)
-// 	if err != nil {
-// 		logUtil.Log(fmt.Sprintf("ListenAndServer:", err), logUtil.Error, true)
-// 		ch <- 2
-// 	} else {
-// 		// 写入0表示启动成功，则main线程可以继续往下进行
-// 		ch <- 0
-// 		logUtil.Log(fmt.Sprintf("Web server start successfully. (local address: %s)", WebServerAddress), logUtil.Debug, true)
-// 	}
-// }
+	// 启动监听服务器
+	if err := http.ListenAndServe(configBLL.WebServerAddress, nil); err != nil {
+		logUtil.Log(fmt.Sprintf("ListenAndServer Error:%s", err), logUtil.Error, true)
+	}
+}
 
 func main() {
-	ch := make(chan int)
+	// 启动web服务器
+	go startWebServer()
 
 	// 启动服务器
+	ch := make(chan int)
 	go startServer(ch)
 
 	// 通过解析从启动服务器的coroutine中返回的值，来判断启动的结果；0表示启动失败，非0表示启动成功
@@ -192,9 +188,6 @@ func main() {
 	} else {
 		fmt.Println("Socket服务器启动成功，等待客户端的接入。。。")
 	}
-
-	// 定时显示数据大小信息
-	go displayDataSize()
 
 	// 阻塞，等待输出，以免main线程退出
 	<-ch

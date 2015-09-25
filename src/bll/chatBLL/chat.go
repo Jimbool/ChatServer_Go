@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/configBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/sensitiveWordsBLL"
+	"github.com/Jordanzuo/ChatServer_Go/src/bll/webBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/channelType"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/commandType"
@@ -62,6 +63,8 @@ func handleChannel(clientAddChan, clientRemoveChan, playerAddChan, playerRemoveC
 			addPlayer(playerAndClientObj.Client, playerAndClientObj.Player)
 		case playerAndClientObj := <-playerRemoveChan:
 			removePlayer(playerAndClientObj.Client, playerAndClientObj.Player)
+		case message := <-webBLL.MessageCh:
+			broadcast(message)
 		default:
 			// 休眠一下，防止CPU过高
 			time.Sleep(50 * time.Millisecond)
@@ -532,6 +535,37 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 	}
 
 	return
+}
+
+// 广播消息
+func broadcast(message string) {
+	fmt.Println("broadcast:", message)
+
+	responseObj := getInitResponseObj(commandType.SendMessage)
+
+	// 组装需要发送的数据
+	data := make(map[string]interface{})
+	data["ChannelType"] = channelType.World
+	data["Message"] = message
+
+	// 增加发送者信息
+	from := make(map[string]interface{})
+	from["Id"] = "system"
+	from["Name"] = "系统"
+	from["UnionId"] = ""
+	from["ExtraMsg"] = ""
+
+	data["From"] = from
+
+	responseObj.Data = data
+
+	// 遍历，向玩家发送消息
+	for _, item := range PlayerList {
+		// 根据Player对象获得Client对象
+		if finalClientObj, ok := getClientByPlayer(item); ok {
+			responseResult(finalClientObj, responseObj)
+		}
+	}
 }
 
 // 发送响应结果

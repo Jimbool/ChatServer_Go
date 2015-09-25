@@ -3,18 +3,19 @@ package webBLL
 import (
 	"fmt"
 	"net/http"
-	"strings"
 )
 
+var (
+	// 传输外部消息的Channel
+	MessageCh = make(chan string, 100)
+)
+
+// 接收需要广播的消息
 func ReceiveMessage(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	fmt.Println(r.Form)
-	fmt.Println("path", r.URL.Path)
-	fmt.Println("scheme", r.URL.Scheme)
-	fmt.Println(r.Form["url_long"])
-	for k, v := range r.Form {
-		fmt.Println("key:", k)
-		fmt.Println("val:", strings.Join(v, ""))
+	if message, ok := r.Form["Message"]; ok {
+		MessageCh <- message[0]
 	}
-	fmt.Fprintf(w, "Hello astaxie!")
+
+	fmt.Fprintf(w, "OK")
 }
