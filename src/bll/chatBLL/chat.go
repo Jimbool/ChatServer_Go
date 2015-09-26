@@ -499,25 +499,11 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 	data := make(map[string]interface{})
 	data["ChannelType"] = channelType_real
 	data["Message"] = message
-
-	// 增加发送者信息
-	from := make(map[string]interface{})
-	from["Id"] = playerObj.Id
-	from["Name"] = playerObj.Name
-	from["UnionId"] = playerObj.UnionId
-	from["ExtraMsg"] = playerObj.ExtraMsg
-
-	data["From"] = from
+	data["From"] = playerObj
 
 	// 如果是私聊，则加上私聊对象的信息
 	if ifToPlayerExists {
-		to := make(map[string]interface{})
-		to["Id"] = toPlayerObj.Id
-		to["Name"] = toPlayerObj.Name
-		to["UnionId"] = toPlayerObj.UnionId
-		to["ExtraMsg"] = toPlayerObj.ExtraMsg
-
-		data["To"] = to
+		data["To"] = toPlayerObj
 	}
 
 	// 设置responseObj的Data属性
@@ -542,6 +528,7 @@ func responseResult(clientObj *client.Client, responseObject responseDataObject.
 	if err != nil {
 		logUtil.Log(fmt.Sprintf("序列化输出结果%v出错", responseObject), logUtil.Error, true)
 	} else {
+		fmt.Println("输出结果：", string(b))
 		clientObj.SendByteMessage(b)
 	}
 }
