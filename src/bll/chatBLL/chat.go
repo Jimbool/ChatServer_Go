@@ -528,7 +528,6 @@ func responseResult(clientObj *client.Client, responseObject responseDataObject.
 	if err != nil {
 		logUtil.Log(fmt.Sprintf("序列化输出结果%v出错", responseObject), logUtil.Error, true)
 	} else {
-		fmt.Println("输出结果：", string(b))
 		clientObj.SendByteMessage(b)
 	}
 }
