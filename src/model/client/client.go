@@ -2,7 +2,7 @@ package client
 
 import (
 	"encoding/binary"
-	"errors"
+	"github.com/Jordanzuo/ChatServer_Go/src/bll/configBLL"
 	"github.com/Jordanzuo/goutil/intAndBytesUtil"
 	"net"
 	"sync/atomic"
@@ -18,32 +18,12 @@ var (
 	// 字节的大小端顺序
 	ByterOrder = binary.LittleEndian
 
-	// 客户端过期的秒数
-	ClientExpiredSeconds time.Duration
-
-	// 收到的总数据大小，以M为单位
+	// 收到的总数据大小，以B为单位
 	TotalReceiveSize int64
 
-	// 发送的总数据大小，以M为单位
+	// 发送的总数据大小，以B为单位
 	TotalSendSize int64
 )
-
-// 设置参数
-// config：从配置文件里面解析出来的配置内容
-func SetParam(config map[string]interface{}) {
-	// 解析ClientExpiredSeconds
-	clientExpiredSeconds, ok := config["CLIENT_EXPIRED_SECONDS"]
-	if !ok {
-		panic(errors.New("不存在名为CLIENT_EXPIRED_SECONDS的配置或配置为空"))
-	}
-	clientExpiredSeconds_int, ok := clientExpiredSeconds.(float64)
-	if !ok {
-		panic(errors.New("CLIENT_EXPIRED_SECONDS必须是int型"))
-	}
-
-	// 设置client的参数：ClientExpiredSeconds
-	ClientExpiredSeconds = time.Duration(int(clientExpiredSeconds_int))
-}
 
 // 定义客户端对象，以实现对客户端连接的封装
 type Client struct {
@@ -82,19 +62,6 @@ func NewClient(id *net.Conn, conn net.Conn) *Client {
 	}
 }
 
-// 玩家登陆
-// playerId：玩家Id
-// 返回值：无
-func (c *Client) PlayerLogin(playerId string) {
-	c.PlayerId = playerId
-}
-
-// 玩家登出
-// 返回值：无
-func (c *Client) PlayerLogout() {
-	c.PlayerId = ""
-}
-
 // 追加内容
 // content：新的内容
 // 返回值：无
@@ -102,30 +69,8 @@ func (c *Client) AppendContent(content []byte) {
 	c.content = append(c.content, content...)
 	c.activeTime = time.Now()
 
-	// 增加接收量
-	TotalReceiveSize = atomic.AddInt64(&TotalReceiveSize, int64(len(content)))
-}
-
-// 判断当前已经收到的消息是否为有效消息（即已经收到了完整的信息）
-// 返回值：是否有效
-func (c *Client) ifHasValidMessage() bool {
-	// 判断是否包含头部信息
-	if len(c.content) < HEADER_LENGTH {
-		return false
-	}
-
-	// 获取头部信息
-	header := c.content[:HEADER_LENGTH]
-
-	// 将头部数据转换为内部的长度
-	contentLength := intAndBytesUtil.BytesToInt(header, ByterOrder)
-
-	// 判断长度是否满足
-	if len(c.content)-HEADER_LENGTH < contentLength {
-		return false
-	}
-
-	return true
+	// 增加接收数据量
+	atomic.AddInt64(&TotalReceiveSize, int64(len(content)))
 }
 
 // 获取有效的消息
@@ -169,8 +114,8 @@ func (c *Client) SendByteMessage(b []byte) {
 	// 将头部与内容组合在一起
 	message := append(header, b...)
 
-	// 增加发送量
-	TotalSendSize = atomic.AddInt64(&TotalSendSize, int64(contentLength))
+	// 增加发送量(包括包头的长度+内容的长度)
+	atomic.AddInt64(&TotalSendSize, int64(HEADER_LENGTH+contentLength))
 
 	// 发送消息
 	c.Conn.Write(message)
@@ -178,11 +123,25 @@ func (c *Client) SendByteMessage(b []byte) {
 
 // 判断客户端是否超时
 // 返回值：是否超时
-func (c *Client) IfExpired() bool {
-	return c.activeTime.Add(ClientExpiredSeconds*time.Second).Unix() < time.Now().Unix()
+func (c *Client) HasExpired() bool {
+	return c.activeTime.Add(configBLL.ClientExpiredSeconds*time.Second).Unix() < time.Now().Unix()
+}
+
+// 玩家登陆
+// playerId：玩家Id
+// 返回值：无
+func (c *Client) PlayerLogin(playerId string) {
+	c.PlayerId = playerId
+}
+
+// 玩家登出
+// 返回值：无
+func (c *Client) PlayerLogout() {
+	c.PlayerId = ""
 }
 
 // 退出
+// 返回值：无
 func (c *Client) Quit() {
 	c.Conn.Close()
 }

@@ -2,8 +2,8 @@ package chatBLL
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
+	"github.com/Jordanzuo/ChatServer_Go/src/bll/configBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/sensitiveWordsBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/channelType"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
@@ -13,21 +13,11 @@ import (
 	"github.com/Jordanzuo/goutil/logUtil"
 	"github.com/Jordanzuo/goutil/securityUtil"
 	"github.com/Jordanzuo/goutil/stringUtil"
-	"github.com/Jordanzuo/goutil/timeUtil"
 	"net"
 	"time"
 )
 
 var (
-	// 服务端检测过期客户端的时间间隔，单位：秒
-	CheckExpiredInterval time.Duration
-
-	// 登陆key
-	LoginKey string
-
-	// 最大消息的长度
-	MaxMsgLength int
-
 	// 客户端连接列表
 	ClientList = make(map[*net.Conn]*client.Client)
 
@@ -41,58 +31,12 @@ var (
 	PlayerRemoveChan = make(chan *player.PlayerAndClient, 50)
 )
 
-// 设置参数
-// config：从配置文件里面解析出来的配置内容
-func SetParam(config map[string]interface{}) {
-	// 解析CHECK_EXPIRED_INTERVAL
-	checkExpiredInterval, ok := config["CHECK_EXPIRED_INTERVAL"]
-	if !ok {
-		panic(errors.New("不存在名为CHECK_EXPIRED_INTERVAL的配置或配置为空"))
-	}
-	checkExpiredInterval_int, ok := checkExpiredInterval.(float64)
-	if !ok {
-		panic(errors.New("CHECK_EXPIRED_INTERVAL必须是int型"))
-	}
-
-	// 设置CheckExpiredInterval参数
-	CheckExpiredInterval = time.Duration(int(checkExpiredInterval_int))
-
-	// 解析LOGIN_KEY
-	loginKey, ok := config["LOGIN_KEY"]
-	if !ok {
-		panic(errors.New("不存在名为LOGIN_KEY的配置或配置为空"))
-	}
-	loginKey_string, ok := loginKey.(string)
-	if !ok {
-		panic(errors.New("LOGIN_KEY必须是string型"))
-	}
-
-	// 设置参数LoginKey
-	LoginKey = loginKey_string
-
-	// 解析MAX_MSG_LENGTH
-	maxMsgLength, ok := config["MAX_MSG_LENGTH"]
-	if !ok {
-		panic(errors.New("不存在名为MAX_MSG_LENGTH的配置或配置为空"))
-	}
-	maxMsgLength_int, ok := maxMsgLength.(float64)
-	if !ok {
-		panic(errors.New("MAX_MSG_LENGTH必须是int型"))
-	}
-
-	// 设置参数MaxMsgLength
-	MaxMsgLength = int(maxMsgLength_int)
-
+func init() {
 	// 启动处理增加、删除客户端channel；增加、删除玩家的channel的gorountine
 	go handleChannel(ClientAddChan, ClientRemoveChan, PlayerAddChan, PlayerRemoveChan)
 
 	// 启动清理过期客户端连接的gorountine
-	// go clearExpiredClient(ClientRemoveChan)
-}
-
-// 显示在线数量
-func displayOnlineCount() {
-	fmt.Printf("%s:当前客户端数量：%d, 当前玩家数量：%d%s", timeUtil.Format(time.Now(), "yyyy-MM-dd HH:mm:ss"), len(ClientList), len(PlayerList), stringUtil.GetNewLineString())
+	go clearExpiredClient(ClientRemoveChan)
 }
 
 // 处理增加、删除客户端channel；增加、删除玩家的channel的逻辑
@@ -112,16 +56,12 @@ func handleChannel(clientAddChan, clientRemoveChan, playerAddChan, playerRemoveC
 		select {
 		case playerAndClientObj := <-clientAddChan:
 			addClient(playerAndClientObj.Client)
-			displayOnlineCount()
 		case playerAndClientObj := <-clientRemoveChan:
 			removeClient(playerAndClientObj.Client)
-			displayOnlineCount()
 		case playerAndClientObj := <-playerAddChan:
 			addPlayer(playerAndClientObj.Client, playerAndClientObj.Player)
-			displayOnlineCount()
 		case playerAndClientObj := <-playerRemoveChan:
 			removePlayer(playerAndClientObj.Client, playerAndClientObj.Player)
-			displayOnlineCount()
 		default:
 			// 休眠一下，防止CPU过高
 			time.Sleep(50 * time.Millisecond)
@@ -139,6 +79,9 @@ func clearExpiredClient(clientRemoveChan chan *player.PlayerAndClient) {
 	}()
 
 	for {
+		// 休眠指定的时间（单位：秒）(放在此处是因为程序刚启动时并没有过期的客户端，所以先不用占用资源；并且此时LogPath尚未设置，如果直接执行后面的代码会出现panic异常)
+		time.Sleep(configBLL.CheckExpiredInterval * time.Second)
+
 		// 清理之前的客户端数量和玩家数量
 		beforeClientCount := len(ClientList)
 		beforePlayerCount := len(PlayerList)
@@ -148,6 +91,9 @@ func clearExpiredClient(clientRemoveChan chan *player.PlayerAndClient) {
 
 		// 获取本次清理的客户端数量
 		expiredClientCount := len(expiredClientList)
+		if expiredClientCount == 0 {
+			continue
+		}
 
 		// 记录日志
 		logUtil.Log(fmt.Sprintf("清理前的客户端数量为：%d， 清理前的玩家数量为：%d， 本次清理不活跃的数量为：%d", beforeClientCount, beforePlayerCount, expiredClientCount), logUtil.Debug, true)
@@ -156,9 +102,6 @@ func clearExpiredClient(clientRemoveChan chan *player.PlayerAndClient) {
 		for _, item := range expiredClientList {
 			item.Quit()
 		}
-
-		// 休眠指定的时间（单位：秒）
-		time.Sleep(CheckExpiredInterval * time.Second)
 	}
 }
 
@@ -166,7 +109,7 @@ func clearExpiredClient(clientRemoveChan chan *player.PlayerAndClient) {
 // 返回值：过期的客户端对象列表
 func getExpiredClientList() (expiredClientList []*client.Client) {
 	for _, item := range ClientList {
-		if item.IfExpired() {
+		if item.HasExpired() {
 			expiredClientList = append(expiredClientList, item)
 		}
 	}
@@ -403,7 +346,7 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 	extraMsg = commandMap["ExtraMsg"]
 
 	// 验证签名是否正确
-	rawstring := fmt.Sprintf("%s-%s-%s", id, name, LoginKey)
+	rawstring := fmt.Sprintf("%s-%s-%s", id, name, configBLL.LoginKey)
 	if sign != securityUtil.Md5String(rawstring, false) {
 		responseObj = getResultStatusResponseObj(responseObj, responseDataObject.SignError)
 		return
@@ -493,8 +436,8 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 	}
 
 	// 判断消息长度是否超过最大值，如果超过最大值，则只趣前面部分
-	if len(message) > MaxMsgLength {
-		message = stringUtil.Substring(message, 0, MaxMsgLength)
+	if len(message) > configBLL.MaxMsgLength {
+		message = stringUtil.Substring(message, 0, configBLL.MaxMsgLength)
 	}
 
 	// 处理敏感词汇
@@ -556,25 +499,11 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 	data := make(map[string]interface{})
 	data["ChannelType"] = channelType_real
 	data["Message"] = message
-
-	// 增加发送者信息
-	from := make(map[string]interface{})
-	from["Id"] = playerObj.Id
-	from["Name"] = playerObj.Name
-	from["UnionId"] = playerObj.UnionId
-	from["ExtraMsg"] = playerObj.ExtraMsg
-
-	data["From"] = from
+	data["From"] = playerObj
 
 	// 如果是私聊，则加上私聊对象的信息
 	if ifToPlayerExists {
-		to := make(map[string]interface{})
-		to["Id"] = toPlayerObj.Id
-		to["Name"] = toPlayerObj.Name
-		to["UnionId"] = toPlayerObj.UnionId
-		to["ExtraMsg"] = toPlayerObj.ExtraMsg
-
-		data["To"] = to
+		data["To"] = toPlayerObj
 	}
 
 	// 设置responseObj的Data属性

@@ -19,7 +19,7 @@ type Player struct {
 	ExtraMsg interface{}
 
 	// 客户端Id
-	ClientId *net.Conn
+	ClientId *net.Conn `json:"-"`
 }
 
 // 构造新的Plyaer对象
