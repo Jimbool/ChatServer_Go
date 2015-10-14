@@ -14,7 +14,9 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 )
 
@@ -160,7 +162,24 @@ func startServer(ch chan int) {
 	}
 }
 
+// 处理系统信号
+func signalProc() {
+	sigs := make(chan os.Signal)
+	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT)
+
+	for {
+		// 准备接收信息
+		<-sigs
+
+		// 一旦收到信号，则表明管理员希望退出程序，则先保存信息，然后退出
+		os.Exit(0)
+	}
+}
+
 func main() {
+	// 处理系统信号
+	go signalProc()
+
 	// 启动服务器
 	ch := make(chan int)
 	go startServer(ch)
