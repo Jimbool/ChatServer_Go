@@ -1,9 +1,5 @@
 package player
 
-import (
-	"net"
-)
-
 // 定义玩家对象
 type Player struct {
 	// 玩家Id
@@ -19,30 +15,40 @@ type Player struct {
 	ExtraMsg interface{}
 
 	// 客户端Id
-	ClientId *net.Conn `json:"-"`
+	clientId int32
 }
 
 // 构造新的Plyaer对象
-// id：玩家Id
-// name：玩家名称
-// unionId：玩家所在公会的Id
+// Id：玩家Id
+// Name：玩家名称
+// UnionId：玩家所在公会的Id
 // extraData；额外信息
-func NewPlayer(id, name, unionId string, extraMsg interface{}, clientId *net.Conn) *Player {
+func NewPlayer(Id, Name, UnionId string, ExtraMsg interface{}, clientId int32) *Player {
 	return &Player{
-		Id:       id,
-		Name:     name,
-		UnionId:  unionId,
-		ExtraMsg: extraMsg,
-		ClientId: clientId,
+		Id:       Id,
+		Name:     Name,
+		UnionId:  UnionId,
+		ExtraMsg: ExtraMsg,
+		clientId: clientId,
 	}
 }
 
 // 更新玩家信息
-// name：玩家名称
-// unionId：玩家所在公会的Id
+// Name：玩家名称
+// UnionId：玩家所在公会的Id
 // extraData；额外信息
-func (p *Player) Update(name, unionId string, extraMsg interface{}) {
-	p.Name = name
-	p.UnionId = unionId
-	p.ExtraMsg = extraMsg
+func (p *Player) Update(Name, UnionId string, ExtraMsg interface{}) {
+	p.Name = Name
+	p.UnionId = UnionId
+	p.ExtraMsg = ExtraMsg
+}
+
+// 获取玩家客户端Id
+func (p *Player) ClientId() int32 {
+	return p.clientId
+}
+
+// 设置玩家客户端Id
+func (p *Player) SetClientId(clientId int32) {
+	p.clientId = clientId
 }

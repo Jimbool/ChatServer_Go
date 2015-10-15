@@ -13,30 +13,29 @@ import (
 	"github.com/Jordanzuo/goutil/logUtil"
 	"github.com/Jordanzuo/goutil/securityUtil"
 	"github.com/Jordanzuo/goutil/stringUtil"
-	"net"
 	"time"
 )
 
 var (
 	// 客户端连接列表
-	ClientList = make(map[*net.Conn]*client.Client)
+	ClientList = make(map[int32]*client.Client)
 
 	// 玩家列表
 	PlayerList = make(map[string]*player.Player)
 
 	// 定义增加、删除客户端channel；增加、删除玩家的channel
-	ClientAddChan    = make(chan *player.PlayerAndClient)
-	ClientRemoveChan = make(chan *player.PlayerAndClient)
-	PlayerAddChan    = make(chan *player.PlayerAndClient, 50)
-	PlayerRemoveChan = make(chan *player.PlayerAndClient, 50)
+	clientAddChan    = make(chan *player.PlayerAndClient)
+	clientRemoveChan = make(chan *player.PlayerAndClient)
+	playerAddChan    = make(chan *player.PlayerAndClient, 50)
+	playerRemoveChan = make(chan *player.PlayerAndClient, 50)
 )
 
 func init() {
 	// 启动处理增加、删除客户端channel；增加、删除玩家的channel的gorountine
-	go handleChannel(ClientAddChan, ClientRemoveChan, PlayerAddChan, PlayerRemoveChan)
+	go handleChannel()
 
 	// 启动清理过期客户端连接的gorountine
-	go clearExpiredClient(ClientRemoveChan)
+	go clearExpiredClient()
 }
 
 // 处理增加、删除客户端channel；增加、删除玩家的channel的逻辑
@@ -44,7 +43,7 @@ func init() {
 // clientRemoveChan: 客户端移除的channel
 // playerAddChan: 玩家增加的channel
 // playerRemoveChan: 玩家移除的channel
-func handleChannel(clientAddChan, clientRemoveChan, playerAddChan, playerRemoveChan chan *player.PlayerAndClient) {
+func handleChannel() {
 	// 处理内部未处理的异常，以免导致主线程退出，从而导致系统崩溃
 	defer func() {
 		if r := recover(); r != nil {
@@ -70,7 +69,7 @@ func handleChannel(clientAddChan, clientRemoveChan, playerAddChan, playerRemoveC
 }
 
 // 清理过期的客户端
-func clearExpiredClient(clientRemoveChan chan *player.PlayerAndClient) {
+func clearExpiredClient() {
 	// 处理内部未处理的异常，以免导致主线程退出，从而导致系统崩溃
 	defer func() {
 		if r := recover(); r != nil {
@@ -86,41 +85,52 @@ func clearExpiredClient(clientRemoveChan chan *player.PlayerAndClient) {
 		beforeClientCount := len(ClientList)
 		beforePlayerCount := len(PlayerList)
 
-		// 获取过期的客户端列表
-		expiredClientList := getExpiredClientList()
-
 		// 获取本次清理的客户端数量
-		expiredClientCount := len(expiredClientList)
-		if expiredClientCount == 0 {
-			continue
+		expiredClientCount := 0
+
+		// 开始清理
+		for _, item := range ClientList {
+			if item.HasExpired() {
+				expiredClientCount++
+				item.Quit()
+			}
 		}
 
 		// 记录日志
-		logUtil.Log(fmt.Sprintf("清理前的客户端数量为：%d， 清理前的玩家数量为：%d， 本次清理不活跃的数量为：%d", beforeClientCount, beforePlayerCount, expiredClientCount), logUtil.Debug, true)
-
-		// 移除过期的客户
-		for _, item := range expiredClientList {
-			item.Quit()
+		if expiredClientCount > 0 {
+			logUtil.Log(fmt.Sprintf("清理前的客户端数量为：%d， 清理前的玩家数量为：%d， 本次清理不活跃的数量为：%d", beforeClientCount, beforePlayerCount, expiredClientCount), logUtil.Debug, true)
 		}
 	}
 }
 
-// 获取过期的客户端对象列表
-// 返回值：过期的客户端对象列表
-func getExpiredClientList() (expiredClientList []*client.Client) {
-	for _, item := range ClientList {
-		if item.HasExpired() {
-			expiredClientList = append(expiredClientList, item)
-		}
-	}
+// 添加新的客户端
+// pair：客户端与玩家对应对象
+func RegisterClient(pair *player.PlayerAndClient) {
+	clientAddChan <- pair
+}
 
-	return
+// 移除客户端
+// pair：客户端与玩家对应对象
+func UnRegisterClient(pair *player.PlayerAndClient) {
+	clientRemoveChan <- pair
+}
+
+// 添加新的玩家
+// pair：客户端与玩家对应对象
+func registerPlayer(pair *player.PlayerAndClient) {
+	playerAddChan <- pair
+}
+
+// 移除玩家
+// pair：客户端与玩家对应对象
+func unRegisterPlayer(pair *player.PlayerAndClient) {
+	playerRemoveChan <- pair
 }
 
 // 添加一个新的客户端对象到列表中
 // clientObj：客户端对象
 func addClient(clientObj *client.Client) {
-	ClientList[clientObj.Id] = clientObj
+	ClientList[clientObj.Id()] = clientObj
 }
 
 // 移除一个客户端对象
@@ -128,12 +138,12 @@ func addClient(clientObj *client.Client) {
 // clientObj：客户端对象
 func removeClient(clientObj *client.Client) {
 	// 清除在PlayerList中的玩家对象
-	if clientObj.PlayerId != "" {
-		delete(PlayerList, clientObj.PlayerId)
+	if clientObj.PlayerId() != "" {
+		delete(PlayerList, clientObj.PlayerId())
 	}
 
 	// 删除客户端
-	delete(ClientList, clientObj.Id)
+	delete(ClientList, clientObj.Id())
 }
 
 // 添加玩家对象
@@ -141,15 +151,6 @@ func removeClient(clientObj *client.Client) {
 // clientObj：客户端对象
 // playerObj：玩家对象
 func addPlayer(clientObj *client.Client, playerObj *player.Player) {
-	// 如果玩家Id有对应的玩家对象(也就是所谓的重复登陆或非正常途径退出)
-	if oldPlayerObj, ok := PlayerList[playerObj.Id]; ok {
-		if oldClientObj, ok := ClientList[oldPlayerObj.ClientId]; ok {
-			// 必须要先Logout再Quit，否则新登陆的玩家也会显示未登陆
-			oldClientObj.PlayerLogout()
-			oldClientObj.Quit()
-		}
-	}
-
 	// 更新Client对象对应的PlayerId
 	clientObj.PlayerLogin(playerObj.Id)
 
@@ -171,16 +172,40 @@ func removePlayer(clientObj *client.Client, playerObj *player.Player) {
 	clientObj.PlayerLogout()
 }
 
+// 根据玩家Id获取对应的玩家对象
+// id：玩家Id
+// 返回值：玩家对象
+func getPlayerById(id string) (*player.Player, bool) {
+	// 然后根据PlayerId从PlayerList找到对应的玩家对象
+	if playerObj, ok := PlayerList[id]; ok {
+		return playerObj, true
+	}
+
+	return nil, false
+}
+
 // 根据客户端对象获取对应的玩家对象
 // clientObj：客户端对象
 // 返回值：玩家对象
 func getPlayerByClient(clientObj *client.Client) (*player.Player, bool) {
 	// 先根据客户端Id从ClientAndPlayerList找到对应的PlayerId
-	if clientObj.PlayerId != "" {
+	if clientObj.PlayerId() != "" {
 		// 然后根据PlayerId从PlayerList找到对应的玩家对象
-		if playerObj, ok := PlayerList[clientObj.PlayerId]; ok {
+		if playerObj, ok := PlayerList[clientObj.PlayerId()]; ok {
 			return playerObj, true
 		}
+	}
+
+	return nil, false
+}
+
+// 根据客户端Id获取对应的客户端对象
+// id：客户端Id
+// 返回值：客户端对象
+func getClientById(id int32) (*client.Client, bool) {
+	// 再根据ClientId从ClientList中获得对应的Client对象
+	if clientObj, ok := ClientList[id]; ok {
+		return clientObj, true
 	}
 
 	return nil, false
@@ -191,9 +216,9 @@ func getPlayerByClient(clientObj *client.Client) (*player.Player, bool) {
 // 返回值：客户端对象
 func getClientByPlayer(playerObj *player.Player) (*client.Client, bool) {
 	// 先根据PlayerId从PlayerAndClientList获得ClientId
-	if playerObj.ClientId != nil {
+	if playerObj.ClientId() != 0 {
 		// 再根据ClientId从ClientList中获得对应的Client对象
-		if clientObj, ok := ClientList[playerObj.ClientId]; ok {
+		if clientObj, ok := ClientList[playerObj.ClientId()]; ok {
 			return clientObj, true
 		}
 	}
@@ -235,7 +260,7 @@ func getResultStatusResponseObj(responseObj responseDataObject.ResponseObject, r
 // clientObj：对应的客户端对象
 // request：请求内容字节数组(json格式)
 // 返回值：无
-func HanleRequest(clientObj *client.Client, request []byte, clientAddChan, clientRemoveChan, playerAddChan, playerRemoveChan chan *player.PlayerAndClient) {
+func HanleRequest(clientObj *client.Client, request []byte) {
 	responseObj := getInitResponseObj(commandType.Login)
 
 	// 最后将responseObject发送到客户端
@@ -292,9 +317,9 @@ func HanleRequest(clientObj *client.Client, request []byte, clientAddChan, clien
 	// 根据不同的请求方法，来调用不同的处理方式
 	switch commandType_real {
 	case commandType.Login:
-		responseObj = login(clientObj, commandType_real, commandMap, playerAddChan)
+		responseObj = login(clientObj, commandType_real, commandMap)
 	case commandType.Logout:
-		responseObj = logout(clientObj, playerObj, commandType_real, playerRemoveChan)
+		responseObj = logout(clientObj, playerObj, commandType_real)
 	case commandType.SendMessage:
 		responseObj = sendMessage(clientObj, playerObj, commandType_real, commandMap)
 	case commandType.UpdatePlayerInfo:
@@ -304,7 +329,7 @@ func HanleRequest(clientObj *client.Client, request []byte, clientAddChan, clien
 	}
 }
 
-func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[string]interface{}, playerAddChan chan *player.PlayerAndClient) (responseObj responseDataObject.ResponseObject) {
+func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[string]interface{}) (responseObj responseDataObject.ResponseObject) {
 	responseObj = getInitResponseObj(ct)
 
 	// 解析参数
@@ -352,11 +377,25 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 		return
 	}
 
-	// 构造玩家对象
-	playerObj := player.NewPlayer(id, name, unionId, extraMsg, clientObj.Id)
+	// 判断玩家是否在缓存中已经存在
+	var playerObj *player.Player
+	if playerObj, ok = getPlayerById(id); ok {
+		// 判断是否重复登陆
+		if oldClientObj, ok := getClientById(playerObj.ClientId()); ok {
+			// 如果不是同一个客户端，则玩家登出，客户端退出
+			if clientObj != oldClientObj {
+				oldClientObj.LogoutAndQuit()
+			}
+		}
+
+		// 更新玩家对象的ClientId
+		playerObj.SetClientId(clientObj.Id())
+	} else {
+		playerObj = player.NewPlayer(id, name, unionId, extraMsg, clientObj.Id())
+	}
 
 	// 将玩家对象添加到玩家增加的channel中
-	playerAddChan <- player.NewPlayerAndClient(playerObj, clientObj)
+	registerPlayer(player.NewPlayerAndClient(playerObj, clientObj))
 
 	// 输出结果
 	responseResult(clientObj, responseObj)
@@ -364,11 +403,11 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 	return
 }
 
-func logout(clientObj *client.Client, playerObj *player.Player, ct commandType.CommandType, playerRemoveChan chan *player.PlayerAndClient) (responseObj responseDataObject.ResponseObject) {
+func logout(clientObj *client.Client, playerObj *player.Player, ct commandType.CommandType) (responseObj responseDataObject.ResponseObject) {
 	responseObj = getInitResponseObj(ct)
 
 	// 将玩家对象添加到玩家移除的channel中
-	playerRemoveChan <- player.NewPlayerAndClient(playerObj, clientObj)
+	unRegisterPlayer(player.NewPlayerAndClient(playerObj, clientObj))
 
 	// 输出结果
 	responseResult(clientObj, responseObj)
