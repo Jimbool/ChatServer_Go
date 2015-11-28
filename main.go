@@ -5,6 +5,7 @@ import (
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/chatBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/rpcBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
+	"github.com/Jordanzuo/goutil/fileUtil"
 	"github.com/Jordanzuo/goutil/logUtil"
 	"github.com/Jordanzuo/goutil/mathUtil"
 	"github.com/Jordanzuo/goutil/stringUtil"
@@ -29,11 +30,7 @@ var (
 
 func init() {
 	// 设置日志文件的存储目录
-	file, _ := exec.LookPath(os.Args[0])
-	path, _ := filepath.Abs(file)
-	logPath := filepath.Dir(path)
-
-	logUtil.SetLogPath(filepath.Join(logPath, LOG_PATH_SUFFIX))
+	logUtil.SetLogPath(filepath.Join(fileUtil.GetCurrentPath(), LOG_PATH_SUFFIX))
 
 	// 设置WaitGroup需要等待的数量
 	wg.Add(1)
