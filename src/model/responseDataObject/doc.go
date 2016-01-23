@@ -2,5 +2,6 @@
 定义响应数据对象
 服务器响应客户端的请求最终都是将一个ResponseObject对象进行JSON序列化，然后发送给客户端
 而每一个ResponseObject对象必定包含一个ResultStatus对象的标识，以标识本次响应的状态
+由于服务器提供Socket和HTTP两种协议的服务，所以对应的返回对象也有两种类型：SocketResponseObject、WebResponseObject
 */
 package responseDataObject

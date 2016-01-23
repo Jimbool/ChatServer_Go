@@ -1,11 +1,14 @@
+/*
+远程服务的包，用于提供Sokcet服务
+*/
 package rpcBLL
 
 import (
 	"fmt"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/chatBLL"
+	"github.com/Jordanzuo/ChatServer_Go/src/bll/clientBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/configBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
-	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
 	"github.com/Jordanzuo/goutil/logUtil"
 	"io"
 	"net"
@@ -44,11 +47,11 @@ func handleConn(conn net.Conn) {
 	clientObj := client.NewClient(conn)
 
 	// 将客户端对象添加到客户端增加的channel中
-	chatBLL.RegisterClient(player.NewPlayerAndClient(nil, clientObj))
+	clientBLL.RegisterClient(clientObj)
 
 	// 将客户端对象添加到客户端移除的channel中
 	defer func() {
-		chatBLL.UnRegisterClient(player.NewPlayerAndClient(nil, clientObj))
+		clientBLL.UnRegisterClient(clientObj)
 	}()
 
 	// 无限循环，不断地读取数据，解析数据，处理数据
@@ -90,7 +93,7 @@ func StartServer(wg *sync.WaitGroup) {
 
 	// 监听指定的端口
 	msg := ""
-	listener, err := net.Listen("tcp", configBLL.ServerAddress)
+	listener, err := net.Listen("tcp", configBLL.SocketServerAddress())
 	if err != nil {
 		msg = fmt.Sprintf("Listen Error: %s", err)
 	} else {

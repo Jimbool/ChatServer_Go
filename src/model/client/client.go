@@ -1,3 +1,6 @@
+/*
+客户端对象包，将服务器与客户端的连接net.Conn封装起来，并进行管理
+*/
 package client
 
 import (
@@ -154,7 +157,7 @@ func (c *Client) SendByteMessage(b []byte) {
 // 判断客户端是否超时
 // 返回值：是否超时
 func (c *Client) HasExpired() bool {
-	return c.activeTime.Add(configBLL.ClientExpiredSeconds*time.Second).Unix() < time.Now().Unix()
+	return time.Now().Unix() > c.activeTime.Add(configBLL.ClientExpireSeconds()*time.Second).Unix()
 }
 
 // 玩家登陆
@@ -170,15 +173,9 @@ func (c *Client) PlayerLogout() {
 	c.playerId = ""
 }
 
-// 退出
-// 返回值：无
-func (c *Client) Quit() {
-	c.conn.Close()
-}
-
 // 玩家登出，客户端退出
 // 返回值：无
 func (c *Client) LogoutAndQuit() {
 	c.PlayerLogout()
-	c.Quit()
+	c.conn.Close()
 }

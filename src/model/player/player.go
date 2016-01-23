@@ -1,4 +1,11 @@
+/*
+玩家对象包，定义了玩家对象
+*/
 package player
+
+import (
+	"time"
+)
 
 // 定义玩家对象
 type Player struct {
@@ -11,44 +18,51 @@ type Player struct {
 	// 玩家公会Id
 	UnionId string
 
-	// 玩家额外信息
-	ExtraMsg interface{}
+	// 额外透传信息
+	ExtraMsg string
+
+	//注册时间
+	RegisterTime time.Time `json:-`
+
+	//登录时间
+	LoginTime time.Time `json:-`
+
+	//是否封号
+	IsForbidden bool `json:-`
+
+	//禁言结束时间
+	SilentEndTime time.Time `json:-`
 
 	// 客户端Id
-	clientId int32
+	ClientId int32 `json:-`
 }
 
-// 构造新的Plyaer对象
-// Id：玩家Id
-// Name：玩家名称
-// UnionId：玩家所在公会的Id
-// extraData；额外信息
-func NewPlayer(Id, Name, UnionId string, ExtraMsg interface{}, clientId int32) *Player {
+// 初始化一个玩家对象
+func InitPlayer(Id, Name, UnionId string, ExtraMsg string) *Player {
 	return &Player{
-		Id:       Id,
-		Name:     Name,
-		UnionId:  UnionId,
-		ExtraMsg: ExtraMsg,
-		clientId: clientId,
+		Id:            Id,
+		Name:          Name,
+		UnionId:       UnionId,
+		ExtraMsg:      ExtraMsg,
+		RegisterTime:  time.Now(),
+		LoginTime:     time.Now(),
+		IsForbidden:   false,
+		SilentEndTime: time.Now(),
+		ClientId:      0,
 	}
 }
 
-// 更新玩家信息
-// Name：玩家名称
-// UnionId：玩家所在公会的Id
-// extraData；额外信息
-func (p *Player) Update(Name, UnionId string, ExtraMsg interface{}) {
-	p.Name = Name
-	p.UnionId = UnionId
-	p.ExtraMsg = ExtraMsg
-}
-
-// 获取玩家客户端Id
-func (p *Player) ClientId() int32 {
-	return p.clientId
-}
-
-// 设置玩家客户端Id
-func (p *Player) SetClientId(clientId int32) {
-	p.clientId = clientId
+// 使用现有数据构造一个新的玩家对象
+func NewPlayer(Id, Name, UnionId string, ExtraMsg string, registerTime, loginTime time.Time, isForbidden bool, silentEndTime time.Time) *Player {
+	return &Player{
+		Id:            Id,
+		Name:          Name,
+		UnionId:       UnionId,
+		ExtraMsg:      ExtraMsg,
+		RegisterTime:  registerTime,
+		LoginTime:     loginTime,
+		IsForbidden:   isForbidden,
+		SilentEndTime: silentEndTime,
+		ClientId:      0,
+	}
 }
