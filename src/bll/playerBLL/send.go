@@ -35,10 +35,26 @@ func PushMessage(message string) {
 }
 
 // 发送在另一台设备登陆的信息
-// player：玩家对象
-func SendLoginAnotherDevice(clientObj *client.Client) {
+// clientObj：客户端对象
+func SendLoginAnotherDeviceMsg(clientObj *client.Client) {
 	responseObj := responseDataObject.NewSocketResponseObject(commandType.Login)
 	responseObj.SetResultStatus(responseDataObject.LoginOnAnotherDevice)
+	responseResult(clientObj, responseObj)
+}
+
+// 发送封号信息
+// clientObj：客户端对象
+func SendForbidMsg(clientObj *client.Client) {
+	responseObj := responseDataObject.NewSocketResponseObject(commandType.Login)
+	responseObj.SetResultStatus(responseDataObject.PlayerIsForbidden)
+	responseResult(clientObj, responseObj)
+}
+
+// 发送禁言信息
+// clientObj：客户端对象
+func SendSilentMsg(clientObj *client.Client) {
+	responseObj := responseDataObject.NewSocketResponseObject(commandType.Login)
+	responseObj.SetResultStatus(responseDataObject.PlayerIsInSilent)
 	responseResult(clientObj, responseObj)
 }
 

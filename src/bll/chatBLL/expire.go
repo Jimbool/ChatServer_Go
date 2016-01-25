@@ -5,6 +5,7 @@ import (
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/clientBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/configBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/playerBLL"
+	"github.com/Jordanzuo/ChatServer_Go/src/model/disconnectType"
 	"github.com/Jordanzuo/goutil/logUtil"
 	"time"
 )
@@ -36,7 +37,7 @@ func clearExpiredClient() {
 			expiredClientCount++
 
 			// 根据客户端对象来断开连接
-			playerBLL.DisconnectByClient(item, false)
+			playerBLL.DisconnectByClient(item, disconnectType.FromExpire)
 		}
 
 		// 记录日志

@@ -3,6 +3,7 @@ package playerBLL
 import (
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/clientBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
+	"github.com/Jordanzuo/ChatServer_Go/src/model/disconnectType"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
 	"github.com/Jordanzuo/goutil/logUtil"
 	"time"
@@ -74,8 +75,8 @@ func UnRegisterPlayerId(id string) {
 // 注销客户端连接
 // 从缓存中移除玩家对象
 // clientObj：客户端对象
-// ifFromRpc：是否是来自于rpc的调用，如果是则意味着之前客户端已经关闭连接，现在需要将客户端对象从缓存中移除了；否则是客户端过期，需要关闭
-func DisconnectByClient(clientObj *client.Client, isFromRpc bool) {
+// clientDisconnectType：客户端断开连接的类型
+func DisconnectByClient(clientObj *client.Client, clientDisconnectType disconnectType.ClientDisconnectType) {
 	// 将玩家从缓存中移除
 	if clientObj.PlayerId() != "" {
 		if playerObj, ok := GetPlayer(clientObj.PlayerId(), false); ok {
@@ -83,21 +84,33 @@ func DisconnectByClient(clientObj *client.Client, isFromRpc bool) {
 		}
 	}
 
-	// 注销客户端连接，并从缓存中移除
-	if isFromRpc {
-		clientBLL.UnRegisterClient(clientObj)
-	} else {
+	// 如果是来自于客户端过期，则将客户端登出并断开连接；
+	// 如果是来自于RPC，则将客户端从缓存中移除
+	switch clientDisconnectType {
+	case disconnectType.FromExpire:
 		clientObj.LogoutAndQuit()
+	case disconnectType.FromRpc:
+		clientBLL.UnRegisterClient(clientObj)
 	}
 }
 
 // 根据玩家对象来断开客连接
 // 注销客户端连接
 // 从缓存中移除玩家对象
-func DisconnectByPlayer(playerObj *player.Player) {
-	// 断开客户端连接
+// playerObj：玩家对象
+// playerDisconnectType：玩家断开连接的类型
+func DisconnectByPlayer(playerObj *player.Player, playerDisconnectType disconnectType.PlayerDisconnectType) {
 	if playerObj.ClientId > 0 {
 		if clientObj, ok := clientBLL.GetClient(playerObj.ClientId); ok {
+			// 先发送指定类型的消息
+			switch playerDisconnectType {
+			case disconnectType.FromForbid:
+				SendForbidMsg(clientObj)
+			case disconnectType.FromSilent:
+				SendSilentMsg(clientObj)
+			}
+
+			// 最后取消与玩家的关联，并断开客户端连接
 			clientObj.LogoutAndQuit()
 		}
 	}

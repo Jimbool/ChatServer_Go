@@ -26,7 +26,7 @@ func displayDataSize() {
 
 	for {
 		// 刚启动时不需要显示信息，故将Sleep放在前面，而不是最后
-		time.Sleep(1 * time.Minute)
+		time.Sleep(5 * time.Minute)
 
 		// 组装需要记录的消息
 		msg := fmt.Sprintf("总共收到%s，发送%s.\t", mathUtil.GetSizeDesc(client.TotalReceiveSize()), mathUtil.GetSizeDesc(client.TotalSendSize()))

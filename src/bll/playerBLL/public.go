@@ -3,6 +3,7 @@ package playerBLL
 import (
 	"github.com/Jordanzuo/ChatServer_Go/src/dal/playerDAL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
+	"github.com/Jordanzuo/ChatServer_Go/src/model/disconnectType"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
 	"time"
 )
@@ -111,7 +112,7 @@ func UpdateForbidStatus(playerObj *player.Player, isForbidden bool) {
 
 	// 断开客户端连接
 	if isForbidden {
-		DisconnectByPlayer(playerObj)
+		DisconnectByPlayer(playerObj, disconnectType.FromForbid)
 	}
 }
 
@@ -124,6 +125,6 @@ func UpdateSilentStatus(playerObj *player.Player, silentEndTime time.Time) {
 
 	// 客户端退出
 	if silentEndTime.Unix() > time.Now().Unix() {
-		DisconnectByPlayer(playerObj)
+		DisconnectByPlayer(playerObj, disconnectType.FromSilent)
 	}
 }

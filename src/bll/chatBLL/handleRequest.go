@@ -148,7 +148,7 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 			if oldClientObj, ok := clientBLL.GetClient(playerObj.ClientId); ok {
 				// 如果不是同一个客户端，则先给客户端发送在其他设备登陆信息，然后断开连接
 				if clientObj != oldClientObj {
-					playerBLL.SendLoginAnotherDevice(oldClientObj)
+					playerBLL.SendLoginAnotherDeviceMsg(oldClientObj)
 					oldClientObj.LogoutAndQuit()
 				}
 			}
@@ -344,7 +344,7 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 // name：玩家名称
 // sign：签名数据
 func verifySign(id, name, sign string) bool {
-	rawstring := fmt.Sprintf("%s-%s-%s-%s", id, name, configBLL.AppId(), configBLL.AppKey())
+	rawstring := fmt.Sprintf("%s-%s-%s", id, name, configBLL.AppKey())
 	if sign == securityUtil.Md5String(rawstring, false) {
 		return true
 	}
