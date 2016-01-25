@@ -74,9 +74,9 @@ func silentCallback(w http.ResponseWriter, r *http.Request) {
 	// 判断是否为查询状态
 	if _type == 0 {
 		data := make(map[string]interface{}, 2)
-		leftMinutes := (playerObj.SilentEndTime.Unix() - time.Now().Unix()) / 60
-		data["Status"] = leftMinutes > 0
-		if leftMinutes > 0 {
+		isInSilent, leftMinutes := playerObj.IsInSilent()
+		data["Status"] = isInSilent
+		if isInSilent {
 			data["LeftMinutes"] = leftMinutes
 		}
 		responseObj.SetData(data)

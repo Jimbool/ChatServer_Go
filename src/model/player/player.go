@@ -66,3 +66,20 @@ func NewPlayer(Id, Name, UnionId string, ExtraMsg string, registerTime, loginTim
 		ClientId:      0,
 	}
 }
+
+// 判断玩家是否处于禁言状态
+// 返回值：
+// 是否处于禁言状态
+// 禁言剩余分钟数
+func (playerObj *Player) IsInSilent() (bool, int) {
+	leftSeconds := playerObj.SilentEndTime.Unix() - time.Now().Unix()
+	if leftSeconds <= 0 {
+		return false, 0
+	} else {
+		if leftSeconds%60 == 0 {
+			return true, int(leftSeconds / 60)
+		} else {
+			return true, int(leftSeconds/60) + 1
+		}
+	}
+}

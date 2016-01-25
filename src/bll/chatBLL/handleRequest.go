@@ -15,7 +15,6 @@ import (
 	"github.com/Jordanzuo/goutil/logUtil"
 	"github.com/Jordanzuo/goutil/securityUtil"
 	"github.com/Jordanzuo/goutil/stringUtil"
-	"time"
 )
 
 // 处理客户端请求
@@ -149,12 +148,11 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 				// 如果不是同一个客户端，则先给客户端发送在其他设备登陆信息，然后断开连接
 				if clientObj != oldClientObj {
 					playerBLL.SendLoginAnotherDeviceMsg(oldClientObj)
-					oldClientObj.LogoutAndQuit()
 				}
 			}
 		}
 	} else {
-		// 判断数据库中是否已经存在该玩家
+		// 判断数据库中是否已经存在该玩家，如果不存在则创建新玩家
 		if playerObj, ok = playerBLL.GetPlayer(id, true); !ok {
 			playerObj = playerBLL.RegisterNewPlayer(id, name, unionId, extraMsg)
 		}
@@ -167,7 +165,8 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 	}
 
 	// 判断玩家是否被禁言
-	if playerObj.SilentEndTime.Unix() > time.Now().Unix() {
+	isInSilent, _ := playerObj.IsInSilent()
+	if isInSilent {
 		responseObj.SetResultStatus(responseDataObject.PlayerIsInSilent)
 		return responseObj
 	}
@@ -193,7 +192,7 @@ func logout(clientObj *client.Client, playerObj *player.Player, ct commandType.C
 	// 玩家登出
 	clientObj.PlayerLogout()
 
-	// 将玩家对象添加到玩家移除的channel中
+	// 将玩家对象从缓存中移除
 	playerBLL.UnRegisterPlayer(playerObj)
 
 	// 输出结果

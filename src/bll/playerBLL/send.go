@@ -25,13 +25,9 @@ func PushMessage(message string) {
 
 	responseObj.SetData(data)
 
-	for _, item := range playerList {
-		if item.ClientId > 0 {
-			if clientObj, ok := clientBLL.GetClient(item.ClientId); ok {
-				responseResult(clientObj, responseObj)
-			}
-		}
-	}
+	// 发送给所有玩家数据
+	allPlayerList := GetPlayerList()
+	SendToPlayer(allPlayerList, responseObj)
 }
 
 // 发送在另一台设备登陆的信息
@@ -39,7 +35,10 @@ func PushMessage(message string) {
 func SendLoginAnotherDeviceMsg(clientObj *client.Client) {
 	responseObj := responseDataObject.NewSocketResponseObject(commandType.Login)
 	responseObj.SetResultStatus(responseDataObject.LoginOnAnotherDevice)
+
+	// 先发送消息，然后再断开连接
 	responseResult(clientObj, responseObj)
+	clientObj.LogoutAndQuit()
 }
 
 // 发送封号信息
@@ -47,7 +46,10 @@ func SendLoginAnotherDeviceMsg(clientObj *client.Client) {
 func SendForbidMsg(clientObj *client.Client) {
 	responseObj := responseDataObject.NewSocketResponseObject(commandType.Login)
 	responseObj.SetResultStatus(responseDataObject.PlayerIsForbidden)
+
+	// 先发送消息，然后再断开连接
 	responseResult(clientObj, responseObj)
+	clientObj.LogoutAndQuit()
 }
 
 // 发送禁言信息
@@ -55,7 +57,10 @@ func SendForbidMsg(clientObj *client.Client) {
 func SendSilentMsg(clientObj *client.Client) {
 	responseObj := responseDataObject.NewSocketResponseObject(commandType.Login)
 	responseObj.SetResultStatus(responseDataObject.PlayerIsInSilent)
+
+	// 先发送消息，然后再断开连接
 	responseResult(clientObj, responseObj)
+	clientObj.LogoutAndQuit()
 }
 
 // 发送数据给客户端

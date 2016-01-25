@@ -7,7 +7,6 @@ import (
 	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
 	"github.com/Jordanzuo/goutil/logUtil"
 	"github.com/Jordanzuo/goutil/mathUtil"
-	"github.com/Jordanzuo/goutil/timeUtil"
 	"time"
 )
 
@@ -32,8 +31,7 @@ func displayDataSize() {
 		msg := fmt.Sprintf("总共收到%s，发送%s.\t", mathUtil.GetSizeDesc(client.TotalReceiveSize()), mathUtil.GetSizeDesc(client.TotalSendSize()))
 		msg += fmt.Sprintf("当前客户端数量：%d, 玩家数量：%d", clientBLL.GetClientCount(), playerBLL.GetPlayerCount())
 
-		// 显示在控制台上，是为了便于本地使用；记录到日志文件是为了便于生产环境使用
-		fmt.Println(timeUtil.Format(time.Now(), "yyyy-MM-dd HH:mm:ss:"), msg)
+		// 记录到日志文件是为了便于生产环境使用
 		logUtil.Log(msg, logUtil.Debug, true)
 	}
 }
