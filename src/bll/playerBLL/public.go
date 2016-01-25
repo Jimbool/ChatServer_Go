@@ -1,7 +1,6 @@
 package playerBLL
 
 import (
-	"github.com/Jordanzuo/ChatServer_Go/src/bll/clientBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/dal/playerDAL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
@@ -58,6 +57,8 @@ func GetPlayer(id string, isLoadFromDB bool) (playerObj *player.Player, ok bool)
 				return nil, false
 			}
 			return playerObj, true
+		} else {
+			return nil, false
 		}
 	}
 
@@ -76,48 +77,6 @@ func RegisterNewPlayer(id, name, unionId, extraMsg string) *player.Player {
 	playerDAL.Insert(playerObj)
 
 	return playerObj
-}
-
-// 注册玩家对象到缓存中
-// playerObj：玩家对象
-func RegisterPlayer(playerObj *player.Player) {
-	playerAddChan <- playerObj
-}
-
-// 从缓存中取消玩家注册
-// playerObj：玩家对象
-func UnRegisterPlayer(playerObj *player.Player) {
-	playerRemoveChan <- playerObj
-}
-
-// 根据客户端对象来断开连接
-// 注销客户端连接
-// 从缓存中移除玩家对象
-func DisconnectByClient(clientObj *client.Client) {
-	// 将玩家从缓存中移除
-	if clientObj.PlayerId() != "" {
-		if playerObj, ok := GetPlayer(clientObj.PlayerId(), false); ok {
-			UnRegisterPlayer(playerObj)
-		}
-	}
-
-	// 注销客户端连接
-	clientObj.LogoutAndQuit()
-}
-
-// 根据玩家对象来断开客连接
-// 注销客户端连接
-// 从缓存中移除玩家对象
-func DisconnectByPlayer(playerObj *player.Player) {
-	// 断开客户端连接
-	if playerObj.ClientId > 0 {
-		if clientObj, ok := clientBLL.GetClient(playerObj.ClientId); ok {
-			clientObj.LogoutAndQuit()
-		}
-	}
-
-	// 将玩家从缓存中移除
-	UnRegisterPlayer(playerObj)
 }
 
 // 更新玩家信息

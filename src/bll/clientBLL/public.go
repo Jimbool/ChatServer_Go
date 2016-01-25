@@ -17,18 +17,6 @@ func GetExpiredClientList() (expiredClientList []*client.Client) {
 	return
 }
 
-// 添加新的客户端
-// clientObj：客户端对象
-func RegisterClient(clientObj *client.Client) {
-	clientAddChan <- clientObj
-}
-
-// 移除客户端
-// clientObj：客户端对象
-func UnRegisterClient(clientObj *client.Client) {
-	clientRemoveChan <- clientObj
-}
-
 // 根据客户端Id获取对应的客户端对象
 // id：客户端Id
 // 返回值：客户端对象

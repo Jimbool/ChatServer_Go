@@ -36,7 +36,7 @@ func clearExpiredClient() {
 			expiredClientCount++
 
 			// 根据客户端对象来断开连接
-			playerBLL.DisconnectByClient(item)
+			playerBLL.DisconnectByClient(item, false)
 		}
 
 		// 记录日志

@@ -23,6 +23,8 @@ func PushMessage(message string) {
 	data["Message"] = message
 	data["From"] = "System"
 
+	responseObj.SetData(data)
+
 	for _, item := range playerList {
 		if item.ClientId > 0 {
 			if clientObj, ok := clientBLL.GetClient(item.ClientId); ok {
@@ -30,6 +32,14 @@ func PushMessage(message string) {
 			}
 		}
 	}
+}
+
+// 发送在另一台设备登陆的信息
+// player：玩家对象
+func SendLoginAnotherDevice(clientObj *client.Client) {
+	responseObj := responseDataObject.NewSocketResponseObject(commandType.Login)
+	responseObj.SetResultStatus(responseDataObject.LoginOnAnotherDevice)
+	responseResult(clientObj, responseObj)
 }
 
 // 发送数据给客户端

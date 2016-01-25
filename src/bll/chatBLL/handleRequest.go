@@ -146,8 +146,9 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 		// 判断是否重复登陆
 		if playerObj.ClientId > 0 {
 			if oldClientObj, ok := clientBLL.GetClient(playerObj.ClientId); ok {
-				// 如果不是同一个客户端，则玩家登出，客户端退出
+				// 如果不是同一个客户端，则先给客户端发送在其他设备登陆信息，然后断开连接
 				if clientObj != oldClientObj {
+					playerBLL.SendLoginAnotherDevice(oldClientObj)
 					oldClientObj.LogoutAndQuit()
 				}
 			}
