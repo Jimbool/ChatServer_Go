@@ -15,7 +15,34 @@ import (
 	"github.com/Jordanzuo/goutil/logUtil"
 	"github.com/Jordanzuo/goutil/securityUtil"
 	"github.com/Jordanzuo/goutil/stringUtil"
+	"strings"
+	"sync"
 )
+
+var (
+	maxCount           = 10
+	historyMessageList = make([]*responseDataObject.SocketResponseObject, 0, maxCount)
+	mutex              sync.RWMutex
+)
+
+func addNewMessage(responseObj *responseDataObject.SocketResponseObject) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	historyMessageList = append(historyMessageList, responseObj)
+	if len(historyMessageList) > maxCount {
+		historyMessageList = historyMessageList[len(historyMessageList)-maxCount:]
+	}
+}
+
+func pushMessageAfterLogin(clientObj *client.Client) {
+	mutex.RLock()
+	defer mutex.RUnlock()
+
+	for _, message := range historyMessageList {
+		playerBLL.SendToClient(clientObj, message)
+	}
+}
 
 // 处理客户端请求
 // clientObj：对应的客户端对象
@@ -139,6 +166,12 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 		return responseObj
 	}
 
+	// 判断名称是否有效
+	if isNameValid(name) == false {
+		responseObj.SetResultStatus(responseDataObject.NameInValid)
+		return responseObj
+	}
+
 	// 判断玩家是否在缓存中已经存在
 	var playerObj *player.Player
 	if playerObj, ok = playerBLL.GetPlayer(id, false); ok {
@@ -182,6 +215,9 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 
 	// 输出结果
 	playerBLL.SendToClient(clientObj, responseObj)
+
+	// 推送历史信息
+	pushMessageAfterLogin(clientObj)
 
 	return responseObj
 }
@@ -228,6 +264,12 @@ func updatePlayerInfo(clientObj *client.Client, playerObj *player.Player, ct com
 	if !ok {
 		logUtil.Log(fmt.Sprintf("ExtraMsg:%v，不是string类型", commandMap["ExtraMsg"]), logUtil.Error, true)
 		responseObj.SetDataError()
+		return responseObj
+	}
+
+	// 判断名称是否有效
+	if isNameValid(name) == false {
+		responseObj.SetResultStatus(responseDataObject.NameInValid)
 		return responseObj
 	}
 
@@ -335,6 +377,9 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 	// 向玩家发送消息
 	playerBLL.SendToPlayer(finalPlayerList, responseObj)
 
+	// 添加到历史消息里面
+	addNewMessage(responseObj)
+
 	return responseObj
 }
 
@@ -349,4 +394,22 @@ func verifySign(id, name, sign string) bool {
 	}
 
 	return false
+}
+
+// 判断名称是否有效
+// name：玩家名称
+// 返回值：
+// 是否有效
+func isNameValid(name string) bool {
+	// 判断名称是否有效
+	if strings.ToLower(name) == "system" {
+		return false
+	}
+
+	// 判断敏感词汇
+	if sensitiveWordsBLL.IfContainsSensitiveWords(name) {
+		return false
+	}
+
+	return true
 }

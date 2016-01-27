@@ -38,3 +38,19 @@ func HandleSensitiveWords(input string) string {
 
 	return input
 }
+
+// 是否包含敏感词
+func IfContainsSensitiveWords(input string) bool {
+	if len(sensitiveWordsList) == 0 {
+		return false
+	}
+
+	// 遍历，并将屏蔽词替换为*
+	for _, item := range sensitiveWordsList {
+		if strings.Contains(strings.ToUpper(input), item) {
+			return true
+		}
+	}
+
+	return false
+}
