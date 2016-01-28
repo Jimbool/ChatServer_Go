@@ -8,5 +8,5 @@ import (
 
 func writeRequestLog(apiName string, r *http.Request) {
 	log, _ := json.Marshal(r.Form)
-	requestLogDAL.Insert(apiName, string(log))
+	go requestLogDAL.Insert(apiName, string(log))
 }

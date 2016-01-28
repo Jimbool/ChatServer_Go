@@ -41,7 +41,7 @@ func pushCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 推送数据
-	playerBLL.PushMessage(message)
+	go playerBLL.PushMessage(message)
 }
 
 func verifyPushSign(message string, sign string) bool {

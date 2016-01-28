@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"time"
 )
 
 var (
@@ -17,6 +18,16 @@ var (
 // 初始化数据库连接相关的配置
 func init() {
 	db = openMysqlConnection(DBConnection, MaxOpenConns, MaxIdleConns)
+
+	// 启动一个Goroutine一直ping数据库，以免被数据库认为过期而关掉
+	go ping()
+}
+
+// 获取数据库对象
+// 返回值：
+// 数据库对象
+func DB() *sql.DB {
+	return db
 }
 
 func openMysqlConnection(connectionString string, maxOpenConns, maxIdleConns int) *sql.DB {
@@ -33,6 +44,10 @@ func openMysqlConnection(connectionString string, maxOpenConns, maxIdleConns int
 	return db
 }
 
-func DB() *sql.DB {
-	return db
+func ping() {
+	// 每5秒ping一次数据库
+	for {
+		time.Sleep(5 * time.Second)
+		db.Ping()
+	}
 }

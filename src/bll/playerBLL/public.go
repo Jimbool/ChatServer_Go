@@ -32,7 +32,7 @@ func UpdateInfo(playerObj *player.Player, name, unionId, extraMsg string) {
 	playerObj.UnionId = unionId
 	playerObj.ExtraMsg = extraMsg
 
-	playerDAL.UpdateInfo(playerObj)
+	go playerDAL.UpdateInfo(playerObj)
 }
 
 // 更新登录信息
@@ -42,7 +42,7 @@ func UpdateLoginInfo(playerObj *player.Player, clientObj *client.Client) {
 	playerObj.ClientId = clientObj.Id()
 	playerObj.LoginTime = time.Now()
 
-	playerDAL.UpdateLoginTime(playerObj)
+	go playerDAL.UpdateLoginTime(playerObj)
 }
 
 // 更新玩家的封号状态

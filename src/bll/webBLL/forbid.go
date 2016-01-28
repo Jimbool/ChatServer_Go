@@ -69,7 +69,7 @@ func forbidCallback(w http.ResponseWriter, r *http.Request) {
 		responseObj.SetData(playerObj.IsForbidden)
 	} else {
 		// 修改封号状态
-		playerBLL.UpdateForbidStatus(playerObj, _type == 1)
+		go playerBLL.UpdateForbidStatus(playerObj, _type == 1)
 	}
 }
 

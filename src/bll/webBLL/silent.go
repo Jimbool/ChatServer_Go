@@ -91,7 +91,7 @@ func silentCallback(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		playerBLL.UpdateSilentStatus(playerObj, silentEndTime)
+		go playerBLL.UpdateSilentStatus(playerObj, silentEndTime)
 	}
 }
 
