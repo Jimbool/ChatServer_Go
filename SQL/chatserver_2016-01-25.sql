@@ -86,23 +86,6 @@ CREATE TABLE `sensitivewords` (
   PRIMARY KEY (`Text`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-LOCK TABLES `sensitivewords` WRITE;
-/*!40000 ALTER TABLE `sensitivewords` DISABLE KEYS */;
-
-INSERT INTO `sensitivewords` (`Text`)
-VALUES
-	('习近平'),
-	('左贤清'),
-	('毛泽东'),
-	('江泽民'),
-	('胡锦涛'),
-	('邓小平');
-
-/*!40000 ALTER TABLE `sensitivewords` ENABLE KEYS */;
-UNLOCK TABLES;
-
-
-
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
