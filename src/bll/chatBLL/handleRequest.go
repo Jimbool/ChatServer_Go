@@ -20,8 +20,7 @@ import (
 )
 
 var (
-	maxCount           = 10
-	historyMessageList = make([]*responseDataObject.SocketResponseObject, 0, maxCount)
+	historyMessageList = make([]*responseDataObject.SocketResponseObject, 0, 20)
 	mutex              sync.RWMutex
 )
 
@@ -30,8 +29,8 @@ func addNewMessage(responseObj *responseDataObject.SocketResponseObject) {
 	defer mutex.Unlock()
 
 	historyMessageList = append(historyMessageList, responseObj)
-	if len(historyMessageList) > maxCount {
-		historyMessageList = historyMessageList[len(historyMessageList)-maxCount:]
+	if len(historyMessageList) > configBLL.MaxHistoryCount() {
+		historyMessageList = historyMessageList[len(historyMessageList)-configBLL.MaxHistoryCount():]
 	}
 }
 
@@ -197,13 +196,6 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 		return responseObj
 	}
 
-	// 判断玩家是否被禁言
-	isInSilent, _ := playerObj.IsInSilent()
-	if isInSilent {
-		responseObj.SetResultStatus(responseDataObject.PlayerIsInSilent)
-		return responseObj
-	}
-
 	// 更新客户端对象的玩家Id
 	clientObj.PlayerLogin(id)
 
@@ -284,6 +276,13 @@ func updatePlayerInfo(clientObj *client.Client, playerObj *player.Player, ct com
 
 func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandType.CommandType, commandMap map[string]interface{}) *responseDataObject.SocketResponseObject {
 	responseObj := responseDataObject.NewSocketResponseObject(ct)
+
+	// 判断玩家是否被禁言
+	isInSilent, _ := playerObj.IsInSilent()
+	if isInSilent {
+		responseObj.SetResultStatus(responseDataObject.PlayerIsInSilent)
+		return responseObj
+	}
 
 	// 解析参数
 	var ok bool
@@ -377,8 +376,10 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 	// 向玩家发送消息
 	playerBLL.SendToPlayer(finalPlayerList, responseObj)
 
-	// 添加到历史消息里面
-	addNewMessage(responseObj)
+	// 如果是世界频道信息，添加到历史消息里面
+	if channelType_real == channelType.World {
+		addNewMessage(responseObj)
+	}
 
 	return responseObj
 }

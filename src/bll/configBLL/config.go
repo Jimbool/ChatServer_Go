@@ -50,6 +50,10 @@ func MaxMsgLength() int {
 	return configObj.SocketServerConfig().MaxMsgLength
 }
 
+func MaxHistoryCount() int {
+	return configObj.SocketServerConfig().MaxHistoryCount
+}
+
 // ====================Socket服务器相关配置 End======================================//
 
 // ====================Web服务器相关配置 Begin======================================//

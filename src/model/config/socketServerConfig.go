@@ -11,6 +11,7 @@ type SocketServerConfig struct {
 	CheckExpireInterval time.Duration // 检测客户端超时的时间间隔，单位：秒
 	ClientExpireSeconds time.Duration // 客户端超时的秒数
 	MaxMsgLength        int           // 最大消息长度
+	MaxHistoryCount     int
 }
 
 func (config *SocketServerConfig) SocketServerAddress() string {

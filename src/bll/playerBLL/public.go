@@ -64,10 +64,4 @@ func UpdateForbidStatus(playerObj *player.Player, isForbidden bool) {
 func UpdateSilentStatus(playerObj *player.Player, silentEndTime time.Time) {
 	playerObj.SilentEndTime = silentEndTime
 	playerDAL.UpdateSilentEndTime(playerObj)
-
-	// 客户端退出
-	isInSilent, _ := playerObj.IsInSilent()
-	if isInSilent {
-		disconnectByPlayer(playerObj, disconnectType.FromSilent)
-	}
 }

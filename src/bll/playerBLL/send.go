@@ -10,6 +10,7 @@ import (
 	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/responseDataObject"
 	"github.com/Jordanzuo/goutil/logUtil"
+	"time"
 )
 
 // 服务器推送信息
@@ -36,8 +37,9 @@ func SendLoginAnotherDeviceMsg(clientObj *client.Client) {
 	responseObj := responseDataObject.NewSocketResponseObject(commandType.Login)
 	responseObj.SetResultStatus(responseDataObject.LoginOnAnotherDevice)
 
-	// 先发送消息，然后再断开连接
+	// 先发送消息，然后再断开连接(中间休眠50ms，避免发送数据时有网络延迟)
 	responseResult(clientObj, responseObj)
+	time.Sleep(50 * time.Millisecond)
 	clientObj.LogoutAndQuit()
 }
 
@@ -47,19 +49,9 @@ func SendForbidMsg(clientObj *client.Client) {
 	responseObj := responseDataObject.NewSocketResponseObject(commandType.Login)
 	responseObj.SetResultStatus(responseDataObject.PlayerIsForbidden)
 
-	// 先发送消息，然后再断开连接
+	// 先发送消息，然后再断开连接(中间休眠50ms，避免发送数据时有网络延迟)
 	responseResult(clientObj, responseObj)
-	clientObj.LogoutAndQuit()
-}
-
-// 发送禁言信息
-// clientObj：客户端对象
-func SendSilentMsg(clientObj *client.Client) {
-	responseObj := responseDataObject.NewSocketResponseObject(commandType.Login)
-	responseObj.SetResultStatus(responseDataObject.PlayerIsInSilent)
-
-	// 先发送消息，然后再断开连接
-	responseResult(clientObj, responseObj)
+	time.Sleep(50 * time.Millisecond)
 	clientObj.LogoutAndQuit()
 }
 

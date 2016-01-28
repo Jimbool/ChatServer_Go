@@ -41,8 +41,6 @@ func disconnectByPlayer(playerObj *player.Player, playerDisconnectType disconnec
 			switch playerDisconnectType {
 			case disconnectType.FromForbid:
 				SendForbidMsg(clientObj)
-			case disconnectType.FromSilent:
-				SendSilentMsg(clientObj)
 			}
 		}
 	}
