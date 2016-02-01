@@ -15,7 +15,6 @@ import (
 	"github.com/Jordanzuo/goutil/logUtil"
 	"github.com/Jordanzuo/goutil/securityUtil"
 	"github.com/Jordanzuo/goutil/stringUtil"
-	"strings"
 	"sync"
 )
 
@@ -166,15 +165,10 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 		return responseObj
 	}
 
-	// 判断名称是否有效
-	if isNameValid(name) == false {
-		responseObj.SetResultStatus(responseDataObject.NameInValid)
-		return responseObj
-	}
-
 	// 判断玩家是否在缓存中已经存在
 	var playerObj *player.Player
 	if playerObj, ok = playerBLL.GetPlayer(id, false); ok {
+		name = playerObj.Name
 		// 判断是否重复登陆
 		if playerObj.ClientId > 0 {
 			if oldClientObj, ok := clientBLL.GetClient(playerObj.ClientId); ok {
@@ -185,8 +179,24 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 			}
 		}
 	} else {
-		// 判断数据库中是否已经存在该玩家，如果不存在则创建新玩家
+		// 判断数据库中是否已经存在该玩家，如果不存在则表明是新玩家，先到游戏库中验证
 		if playerObj, ok = playerBLL.GetPlayer(id, true); !ok {
+			// 验证玩家Id在游戏库中是否存在；
+			if gamePlayerName, gameUnionId, ok := playerBLL.GetGamePlayer(id); !ok {
+				responseObj.SetResultStatus(responseDataObject.PlayerNotExist)
+				return responseObj
+			} else {
+				if name != gamePlayerName {
+					responseObj.SetResultStatus(responseDataObject.NameError)
+					return responseObj
+				}
+
+				if unionId != gameUnionId {
+					responseObj.SetResultStatus(responseDataObject.UnionIdError)
+					return responseObj
+				}
+			}
+
 			playerObj = playerBLL.RegisterNewPlayer(id, name, unionId, extraMsg)
 			isNewPlayer = true
 		}
@@ -261,10 +271,23 @@ func updatePlayerInfo(clientObj *client.Client, playerObj *player.Player, ct com
 		return responseObj
 	}
 
-	// 判断名称是否有效
-	if isNameValid(name) == false {
-		responseObj.SetResultStatus(responseDataObject.NameInValid)
-		return responseObj
+	// 如果玩家名有改变，则到游戏库中去验证是否是正确的名称
+	if name != playerObj.Name {
+		// 验证玩家Id在游戏库中是否存在；
+		if gamePlayerName, gameUnionId, ok := playerBLL.GetGamePlayer(playerObj.Id); !ok {
+			responseObj.SetResultStatus(responseDataObject.PlayerNotExist)
+			return responseObj
+		} else {
+			if name != gamePlayerName {
+				responseObj.SetResultStatus(responseDataObject.NameError)
+				return responseObj
+			}
+
+			if unionId != gameUnionId {
+				responseObj.SetResultStatus(responseDataObject.UnionIdError)
+				return responseObj
+			}
+		}
 	}
 
 	// 更新玩家信息
@@ -397,22 +420,4 @@ func verifySign(id, name, sign string) bool {
 	}
 
 	return false
-}
-
-// 判断名称是否有效
-// name：玩家名称
-// 返回值：
-// 是否有效
-func isNameValid(name string) bool {
-	// 判断名称是否有效
-	if strings.ToLower(name) == "system" {
-		return false
-	}
-
-	// 判断敏感词汇
-	if sensitiveWordsBLL.IfContainsSensitiveWords(name) {
-		return false
-	}
-
-	return true
 }

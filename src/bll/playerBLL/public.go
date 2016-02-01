@@ -69,3 +69,13 @@ func UpdateSilentStatus(playerObj *player.Player, silentEndTime time.Time) {
 	playerObj.SilentEndTime = silentEndTime
 	playerDAL.UpdateSilentEndTime(playerObj)
 }
+
+// 获取游戏玩家名称
+// playerObj：玩家对象
+// 返回值：
+// 玩家名称
+// 玩家公会Id
+// 是否存在玩家
+func GetGamePlayer(id string) (string, string, bool) {
+	return playerDAL.GetGamePlayer(id)
+}

@@ -12,22 +12,40 @@ import (
 )
 
 var (
-	db *sql.DB
+	chatDB  *sql.DB
+	modelDB *sql.DB
+	gameDB  *sql.DB
 )
 
 // 初始化数据库连接相关的配置
 func init() {
-	db = openMysqlConnection(DBConnection, MaxOpenConns, MaxIdleConns)
+	chatDB = openMysqlConnection(ChatDBConnection, MaxOpenConns, MaxIdleConns)
+	modelDB = openMysqlConnection(ModelDBConnection, 0, 0)
+	gameDB = openMysqlConnection(GameDBConnection, MaxOpenConns, MaxIdleConns)
 
 	// 启动一个Goroutine一直ping数据库，以免被数据库认为过期而关掉
 	go ping()
 }
 
-// 获取数据库对象
+// 获取聊天数据库对象
 // 返回值：
-// 数据库对象
-func DB() *sql.DB {
-	return db
+// 聊天数据库对象
+func ChatDB() *sql.DB {
+	return chatDB
+}
+
+// 获取模型数据库对象
+// 返回值：
+// 模型数据库对象
+func ModelDB() *sql.DB {
+	return modelDB
+}
+
+// 获取游戏数据库对象
+// 返回值：
+// 游戏数据库对象
+func GameDB() *sql.DB {
+	return gameDB
 }
 
 func openMysqlConnection(connectionString string, maxOpenConns, maxIdleConns int) *sql.DB {
@@ -37,9 +55,10 @@ func openMysqlConnection(connectionString string, maxOpenConns, maxIdleConns int
 		panic(errors.New(fmt.Sprintf("打开游戏数据库失败,连接字符串为：%s", connectionString)))
 	}
 
-	db.SetMaxOpenConns(maxOpenConns)
-	db.SetMaxIdleConns(maxIdleConns)
-	db.Ping()
+	if maxOpenConns > 0 && maxIdleConns > 0 {
+		db.SetMaxOpenConns(maxOpenConns)
+		db.SetMaxIdleConns(maxIdleConns)
+	}
 
 	return db
 }
@@ -48,6 +67,8 @@ func ping() {
 	// 每分钟ping一次数据库
 	for {
 		time.Sleep(time.Minute)
-		db.Ping()
+
+		chatDB.Ping()
+		gameDB.Ping()
 	}
 }

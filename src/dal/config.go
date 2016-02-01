@@ -15,8 +15,17 @@ const (
 )
 
 var (
-	// 日志数据库连接字符串
-	DBConnection string
+	// 服务器组Id
+	ServerGroupId int
+
+	// 聊天数据库连接字符串
+	ChatDBConnection string
+
+	// 模型数据库连接字符串
+	ModelDBConnection string
+
+	// 游戏数据库连接字符串
+	GameDBConnection string
 
 	// 数据库的最大连接数
 	MaxOpenConns int
@@ -40,18 +49,57 @@ func init() {
 		panic(err)
 	}
 
-	// 解析LogDBConnection
-	dbConnection, ok := config["DBConnection"]
+	// 解析ServerGroupId
+	serverGroupId, ok := config["ServerGroupId"]
 	if !ok {
-		panic(errors.New("不存在名为DBConnection的配置或配置为空"))
+		panic(errors.New("不存在名为ServerGroupId的配置或配置为空"))
 	}
-	dbConnection_string, ok := dbConnection.(string)
+	serverGroupId_float, ok := serverGroupId.(float64)
 	if !ok {
-		panic(errors.New("DBConnection必须为字符串类型"))
+		panic(errors.New("ServerGroupId必须为int型"))
+	}
+
+	// 设置ServerGroupId
+	ServerGroupId = int(serverGroupId_float)
+
+	// 解析ChatDBConnection
+	chatDBConnection, ok := config["ChatDBConnection"]
+	if !ok {
+		panic(errors.New("不存在名为ChatDBConnection的配置或配置为空"))
+	}
+	chatDBConnection_string, ok := chatDBConnection.(string)
+	if !ok {
+		panic(errors.New("ChatDBConnection必须为字符串类型"))
+	}
+
+	// 设置ChatDBConnection
+	ChatDBConnection = chatDBConnection_string
+
+	// 解析ModelDBConnection
+	modelDBConnection, ok := config["ModelDBConnection"]
+	if !ok {
+		panic(errors.New("不存在名为ModelDBConnection的配置或配置为空"))
+	}
+	modelDBConnection_string, ok := modelDBConnection.(string)
+	if !ok {
+		panic(errors.New("ModelDBConnection必须为字符串类型"))
+	}
+
+	// 设置ModelDBConnection
+	ModelDBConnection = modelDBConnection_string
+
+	// 解析GameDBConnection
+	gameDBConnection, ok := config["GameDBConnection"]
+	if !ok {
+		panic(errors.New("不存在名为GameDBConnection的配置或配置为空"))
+	}
+	gameDBConnection_string, ok := gameDBConnection.(string)
+	if !ok {
+		panic(errors.New("GameDBConnection必须为字符串类型"))
 	}
 
 	// 设置GameDBConnection
-	DBConnection = dbConnection_string
+	GameDBConnection = gameDBConnection_string
 
 	// 解析SERVER_PORT
 	maxOpenConns, ok := config["MaxOpenConns"]

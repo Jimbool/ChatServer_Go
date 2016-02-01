@@ -8,21 +8,21 @@ import (
 )
 
 func GetList() (sensitiveWordsList []string) {
-	sql := "SELECT Text FROM sensitivewords;"
+	sql := "SELECT Words FROM b_sensitive_words_c;"
 
-	rows, err := dal.DB().Query(sql)
+	rows, err := dal.ModelDB().Query(sql)
 	if err != nil {
 		panic(err)
 	}
 
 	for rows.Next() {
-		var text string
-		err := rows.Scan(&text)
+		var words string
+		err := rows.Scan(&words)
 		if err != nil {
 			panic(err)
 		}
 
-		sensitiveWordsList = append(sensitiveWordsList, text)
+		sensitiveWordsList = append(sensitiveWordsList, words)
 	}
 
 	return

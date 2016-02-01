@@ -5,53 +5,57 @@
 package configBLL
 
 import (
+	"github.com/Jordanzuo/ChatServer_Go/src/dal"
 	"github.com/Jordanzuo/ChatServer_Go/src/dal/configDAL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/config"
 	"time"
 )
 
 var (
-	configObj *config.Config
+	appConfigObj          *config.AppConfig
+	socketServerConfigObj *config.SocketServerConfig
+	webServerConfigObj    *config.WebServerConfig
 )
 
 func init() {
-	configObj = configDAL.GetConfig()
+	appConfigObj = configDAL.GetAppConfig()
+	socketServerConfigObj, webServerConfigObj = configDAL.GetServerConfig(dal.ServerGroupId)
 }
 
 // ====================App相关配置 Begin======================================//
 func AppId() string {
-	return configObj.AppConfig().AppId
+	return appConfigObj.AppId
 }
 
 func AppName() string {
-	return configObj.AppConfig().AppName
+	return appConfigObj.AppName
 }
 
 func AppKey() string {
-	return configObj.AppConfig().AppKey
+	return appConfigObj.AppKey
 }
 
 // ====================App相关配置 End======================================//
 
 // ====================Socket服务器相关配置 Begin======================================//
 func SocketServerAddress() string {
-	return configObj.SocketServerConfig().SocketServerAddress()
+	return socketServerConfigObj.SocketServerAddress()
 }
 
 func CheckExpireInterval() time.Duration {
-	return configObj.SocketServerConfig().CheckExpireInterval
+	return socketServerConfigObj.CheckExpireInterval
 }
 
 func ClientExpireSeconds() time.Duration {
-	return configObj.SocketServerConfig().ClientExpireSeconds
+	return socketServerConfigObj.ClientExpireSeconds
 }
 
 func MaxMsgLength() int {
-	return configObj.SocketServerConfig().MaxMsgLength
+	return socketServerConfigObj.MaxMsgLength
 }
 
 func MaxHistoryCount() int {
-	return configObj.SocketServerConfig().MaxHistoryCount
+	return socketServerConfigObj.MaxHistoryCount
 }
 
 // ====================Socket服务器相关配置 End======================================//
@@ -59,7 +63,7 @@ func MaxHistoryCount() int {
 // ====================Web服务器相关配置 Begin======================================//
 
 func WebServerAddress() string {
-	return configObj.WebServerConfig().WebServerAddress()
+	return webServerConfigObj.WebServerAddress()
 }
 
 // ====================Web服务器相关配置 End======================================//

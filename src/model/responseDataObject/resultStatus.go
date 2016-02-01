@@ -47,8 +47,11 @@ const (
 	// 在另一台设备上登录
 	LoginOnAnotherDevice
 
-	// 名称无效
-	NameInValid
+	// 名称错误
+	NameError
+
+	// 公会Id错误
+	UnionIdError
 )
 
 // 定义所有的响应结果的状态值所对应的字符串描述信息，如果要增加状态枚举，则此处也要相应地增加
@@ -67,7 +70,8 @@ var status = [...]string{
 	"OnlySupportPOST",
 	"APINotDefined",
 	"LoginOnAnotherDevice",
-	"NameInValid",
+	"NameError",
+	"UnionIdError",
 }
 
 // 返回响应状态枚举值对应的描述信息字符串
