@@ -45,9 +45,9 @@ func openMysqlConnection(connectionString string, maxOpenConns, maxIdleConns int
 }
 
 func ping() {
-	// 每5秒ping一次数据库
+	// 每分钟ping一次数据库
 	for {
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Minute)
 		db.Ping()
 	}
 }

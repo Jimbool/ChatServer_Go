@@ -38,11 +38,15 @@ func UpdateInfo(playerObj *player.Player, name, unionId, extraMsg string) {
 // 更新登录信息
 // playerObj：玩家对象
 // clientObj：客户端对象
-func UpdateLoginInfo(playerObj *player.Player, clientObj *client.Client) {
+// isNewPlayer：是否是新玩家
+func UpdateLoginInfo(playerObj *player.Player, clientObj *client.Client, isNewPlayer bool) {
 	playerObj.ClientId = clientObj.Id()
 	playerObj.LoginTime = time.Now()
 
-	go playerDAL.UpdateLoginTime(playerObj)
+	// 如果不是新玩家则更新登录时间，否则使用创建时指定的登录时间
+	if !isNewPlayer {
+		go playerDAL.UpdateLoginTime(playerObj)
+	}
 }
 
 // 更新玩家的封号状态

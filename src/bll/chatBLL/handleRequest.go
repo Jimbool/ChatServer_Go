@@ -123,6 +123,7 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 	var unionId string
 	var sign string
 	var extraMsg string
+	var isNewPlayer bool
 
 	id, ok = commandMap["Id"].(string)
 	if !ok {
@@ -187,6 +188,7 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 		// 判断数据库中是否已经存在该玩家，如果不存在则创建新玩家
 		if playerObj, ok = playerBLL.GetPlayer(id, true); !ok {
 			playerObj = playerBLL.RegisterNewPlayer(id, name, unionId, extraMsg)
+			isNewPlayer = true
 		}
 	}
 
@@ -200,7 +202,7 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 	clientObj.PlayerLogin(id)
 
 	// 更新玩家登录信息
-	playerBLL.UpdateLoginInfo(playerObj, clientObj)
+	playerBLL.UpdateLoginInfo(playerObj, clientObj, isNewPlayer)
 
 	// 将玩家对象添加到玩家增加的channel中
 	playerBLL.RegisterPlayer(playerObj)

@@ -41,7 +41,7 @@ func sensitiveCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 重新加载敏感词
-	go sensitiveWordsBLL.Reload()
+	sensitiveWordsBLL.Reload()
 }
 
 func verifySensitiveSign(message string, sign string) bool {
