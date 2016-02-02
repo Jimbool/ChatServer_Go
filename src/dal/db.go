@@ -60,6 +60,8 @@ func openMysqlConnection(connectionString string, maxOpenConns, maxIdleConns int
 		db.SetMaxIdleConns(maxIdleConns)
 	}
 
+	db.Ping()
+
 	return db
 }
 

@@ -29,7 +29,7 @@ func handleClientContent(clientObj *client.Client) {
 		if len(content) == 0 {
 			continue
 		} else {
-			chatBLL.HanleRequest(clientObj, content)
+			go chatBLL.HanleRequest(clientObj, content)
 		}
 	}
 }

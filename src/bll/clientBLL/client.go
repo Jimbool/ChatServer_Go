@@ -4,6 +4,7 @@
 package clientBLL
 
 import (
+	"fmt"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
 	"sync"
 )
@@ -31,7 +32,9 @@ func UnRegisterClient(clientObj *client.Client) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
+	fmt.Println("Before UnRegisterClient, count=", len(clientList))
 	delete(clientList, clientObj.Id())
+	fmt.Println("After UnRegisterClient, count=", len(clientList))
 }
 
 // 返回过期的客户端列表

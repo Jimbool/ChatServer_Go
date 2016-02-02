@@ -32,7 +32,7 @@ func UpdateInfo(playerObj *player.Player, name, unionId, extraMsg string) {
 	playerObj.UnionId = unionId
 	playerObj.ExtraMsg = extraMsg
 
-	go playerDAL.UpdateInfo(playerObj)
+	playerDAL.UpdateInfo(playerObj)
 }
 
 // 更新登录信息
@@ -45,7 +45,7 @@ func UpdateLoginInfo(playerObj *player.Player, clientObj *client.Client, isNewPl
 
 	// 如果不是新玩家则更新登录时间，否则使用创建时指定的登录时间
 	if !isNewPlayer {
-		go playerDAL.UpdateLoginTime(playerObj)
+		playerDAL.UpdateLoginTime(playerObj)
 	}
 }
 

@@ -401,13 +401,13 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 	// 设置responseObj的Data属性
 	responseObj.SetData(data)
 
-	// 向玩家发送消息
-	playerBLL.SendToPlayer(finalPlayerList, responseObj)
-
 	// 如果是世界频道信息，添加到历史消息里面
 	if channelType_real == channelType.World {
 		addNewMessage(responseObj)
 	}
+
+	// 向玩家发送消息
+	playerBLL.SendToPlayer(finalPlayerList, responseObj)
 
 	return responseObj
 }
