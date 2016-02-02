@@ -7,7 +7,7 @@
 #
 # Host: 192.168.1.226 (MySQL 5.5.44)
 # Database: chatserver
-# Generation Time: 2016-01-25 02:24:13 +0000
+# Generation Time: 2016-02-02 07:10:03 +0000
 # ************************************************************
 
 
@@ -20,27 +20,25 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 
-# Dump of table config
+# Dump of table appconfig
 # ------------------------------------------------------------
 
-DROP TABLE IF EXISTS `config`;
+DROP TABLE IF EXISTS `appconfig`;
 
-CREATE TABLE `config` (
+CREATE TABLE `appconfig` (
   `AppId` varchar(32) NOT NULL COMMENT '应用Id',
   `AppName` varchar(32) NOT NULL COMMENT '应用名称',
-  `AppKey` varchar(64) NOT NULL COMMENT '应用Key，用于加密',
-  `SocketServerConfig` varchar(1024) NOT NULL COMMENT 'Socket服务器配置：如IP、Port等',
-  `WebServerConfig` varchar(1024) NOT NULL COMMENT 'Web服务器配置，如：端口，映射关系'
+  `AppKey` varchar(64) NOT NULL COMMENT '应用Key，用于加密'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-LOCK TABLES `config` WRITE;
-/*!40000 ALTER TABLE `config` DISABLE KEYS */;
+LOCK TABLES `appconfig` WRITE;
+/*!40000 ALTER TABLE `appconfig` DISABLE KEYS */;
 
-INSERT INTO `config` (`AppId`, `AppName`, `AppKey`, `SocketServerConfig`, `WebServerConfig`)
+INSERT INTO `appconfig` (`AppId`, `AppName`, `AppKey`)
 VALUES
-	('1','皮卡丘','7DE9DAA1-E87C-FF51-BCE3-15946DBE9462','{\n	\"ServerHost\": \"192.168.1.68\",\n	\"ServerPort\": 8001,\n	\"CheckExpireInterval\": 300,\n	\"ClientExpireSeconds\": 60,\n	\"MaxMsgLength\": 100\n}','{\n	\"ServerHost\":\"192.168.1.68\",\n	\"ServerPort\": 8002\n}');
+	('PKQ','皮卡丘','7DE9DAA1-E87C-FF51-BCE3-15946DBE9462');
 
-/*!40000 ALTER TABLE `config` ENABLE KEYS */;
+/*!40000 ALTER TABLE `appconfig` ENABLE KEYS */;
 UNLOCK TABLES;
 
 
@@ -69,6 +67,7 @@ DROP TABLE IF EXISTS `request_log`;
 
 CREATE TABLE `request_log` (
   `Id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Id',
+  `ServerGroupId` int(11) NOT NULL COMMENT '服务器组Id',
   `APIName` varchar(32) NOT NULL COMMENT 'API名称',
   `Content` varchar(1024) NOT NULL COMMENT '请求内容',
   `Crdate` datetime NOT NULL COMMENT '请求时间',
@@ -76,15 +75,30 @@ CREATE TABLE `request_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
-# Dump of table sensitivewords
+# Dump of table serverconfig
 # ------------------------------------------------------------
 
-DROP TABLE IF EXISTS `sensitivewords`;
+DROP TABLE IF EXISTS `serverconfig`;
 
-CREATE TABLE `sensitivewords` (
-  `Text` varchar(32) NOT NULL COMMENT '内容',
-  PRIMARY KEY (`Text`)
+CREATE TABLE `serverconfig` (
+  `ServerGroupId` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `SocketServerConfig` varchar(1024) DEFAULT NULL COMMENT 'Socket服务器配置：如IP、Port等',
+  `WebServerConfig` varchar(1024) DEFAULT NULL COMMENT 'Web服务器配置，如：端口，映射关系',
+  PRIMARY KEY (`ServerGroupId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+LOCK TABLES `serverconfig` WRITE;
+/*!40000 ALTER TABLE `serverconfig` DISABLE KEYS */;
+
+INSERT INTO `serverconfig` (`ServerGroupId`, `SocketServerConfig`, `WebServerConfig`)
+VALUES
+	(1,'{\n	\"ServerHost\": \"192.168.1.68\",\n	\"ServerPort\": 8001,\n	\"CheckExpireInterval\": 300,\n	\"ClientExpireSeconds\": 60,\n	\"MaxMsgLength\": 100,\n	\"MaxHistoryCount\":10\n}\n','{\n	\"ServerHost\":\"192.168.1.68\",\n	\"ServerPort\": 8002\n}'),
+	(2,'{\n	\"ServerHost\": \"192.168.1.68\",\n	\"ServerPort\": 9001,\n	\"CheckExpireInterval\": 300,\n	\"ClientExpireSeconds\": 60,\n	\"MaxMsgLength\": 100,\n	\"MaxHistoryCount\":10\n}\n','{\n	\"ServerHost\":\"192.168.1.68\",\n	\"ServerPort\": 9002\n}');
+
+/*!40000 ALTER TABLE `serverconfig` ENABLE KEYS */;
+UNLOCK TABLES;
+
+
 
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
