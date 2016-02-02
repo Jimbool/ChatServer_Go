@@ -191,7 +191,7 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 					return responseObj
 				}
 
-				if unionId != gameUnionId {
+				if unionId != "" && unionId != "00000000-0000-0000-0000-000000000000" && unionId != gameUnionId {
 					responseObj.SetResultStatus(responseDataObject.UnionIdError)
 					return responseObj
 				}
@@ -283,7 +283,7 @@ func updatePlayerInfo(clientObj *client.Client, playerObj *player.Player, ct com
 				return responseObj
 			}
 
-			if unionId != gameUnionId {
+			if unionId != "" && unionId != "00000000-0000-0000-0000-000000000000" && unionId != gameUnionId {
 				responseObj.SetResultStatus(responseDataObject.UnionIdError)
 				return responseObj
 			}
