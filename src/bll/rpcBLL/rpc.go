@@ -12,7 +12,6 @@ import (
 	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/disconnectType"
 	"github.com/Jordanzuo/goutil/logUtil"
-	"io"
 	"net"
 	"sync"
 )
@@ -63,16 +62,16 @@ func handleConn(conn net.Conn) {
 		// Read方法会阻塞，所以不用考虑异步的方式
 		n, err := conn.Read(readBytes)
 		if err != nil {
-			var errMsg string
+			// var errMsg string
 
-			// 判断是连接关闭错误，还是普通错误
-			if err == io.EOF {
-				errMsg = fmt.Sprintf("另一端关闭了连接：%s", err)
-			} else {
-				errMsg = fmt.Sprintf("读取数据错误：%s", err)
-			}
+			// // 判断是连接关闭错误，还是普通错误
+			// if err == io.EOF {
+			// 	errMsg = fmt.Sprintf("另一端关闭了连接：%s", err)
+			// } else {
+			// 	errMsg = fmt.Sprintf("读取数据错误：%s", err)
+			// }
 
-			logUtil.Log(errMsg, logUtil.Error, true)
+			// logUtil.Log(errMsg, logUtil.Error, true)
 
 			break
 		}

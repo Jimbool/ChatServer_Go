@@ -92,7 +92,7 @@ func HanleRequest(clientObj *client.Client, request []byte) {
 	// 解析Command(是map[string]interface{}类型)
 	commandMap, ok := requestMap["Command"].(map[string]interface{})
 	if !ok {
-		logUtil.Log(fmt.Sprintf("commandMap:%v，不是map类型", commandMap), logUtil.Error, true)
+		logUtil.Log(fmt.Sprintf("commandMap:%v，不是map类型", requestMap["Command"]), logUtil.Error, true)
 		responseObj.SetDataError()
 		return
 	}
