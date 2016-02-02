@@ -271,8 +271,8 @@ func updatePlayerInfo(clientObj *client.Client, playerObj *player.Player, ct com
 		return responseObj
 	}
 
-	// 如果玩家名有改变，则到游戏库中去验证是否是正确的名称
-	if name != playerObj.Name {
+	// 如果玩家名或公会Id有改变，则到游戏库中去验证是否是正确的名称
+	if name != playerObj.Name || unionId != playerObj.UnionId {
 		// 验证玩家Id在游戏库中是否存在；
 		if gamePlayerName, gameUnionId, ok := playerBLL.GetGamePlayer(playerObj.Id); !ok {
 			responseObj.SetResultStatus(responseDataObject.PlayerNotExist)
