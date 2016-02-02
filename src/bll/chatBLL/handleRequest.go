@@ -70,7 +70,7 @@ func HanleRequest(clientObj *client.Client, request []byte) {
 	var ok bool
 	commandType_float, ok := requestMap["CommandType"].(float64)
 	if !ok {
-		logUtil.Log(fmt.Sprintf("CommandType:%v，不是int类型", requestMap["CommandType"]), logUtil.Error, true)
+		logUtil.Log(fmt.Sprintf("CommandType:%v，不是int类型", requestMap), logUtil.Error, true)
 		responseObj.SetDataError()
 		return
 	}
@@ -92,7 +92,7 @@ func HanleRequest(clientObj *client.Client, request []byte) {
 	// 解析Command(是map[string]interface{}类型)
 	commandMap, ok := requestMap["Command"].(map[string]interface{})
 	if !ok {
-		logUtil.Log(fmt.Sprintf("commandMap:%v，不是map类型", requestMap["Command"]), logUtil.Error, true)
+		logUtil.Log(fmt.Sprintf("commandMap:%v，不是map类型", requestMap), logUtil.Error, true)
 		responseObj.SetDataError()
 		return
 	}
@@ -126,35 +126,35 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 
 	id, ok = commandMap["Id"].(string)
 	if !ok {
-		logUtil.Log(fmt.Sprintf("Id:%v，不是string类型", commandMap["Id"]), logUtil.Error, true)
+		logUtil.Log(fmt.Sprintf("Id:%v，不是string类型", commandMap), logUtil.Error, true)
 		responseObj.SetDataError()
 		return responseObj
 	}
 
 	name, ok = commandMap["Name"].(string)
 	if !ok {
-		logUtil.Log(fmt.Sprintf("Name:%v，不是string类型", commandMap["Name"]), logUtil.Error, true)
+		logUtil.Log(fmt.Sprintf("Name:%v，不是string类型", commandMap), logUtil.Error, true)
 		responseObj.SetDataError()
 		return responseObj
 	}
 
 	unionId, ok = commandMap["UnionId"].(string)
 	if !ok {
-		logUtil.Log(fmt.Sprintf("UnionId:%v，不是string类型", commandMap["UnionId"]), logUtil.Error, true)
+		logUtil.Log(fmt.Sprintf("UnionId:%v，不是string类型", commandMap), logUtil.Error, true)
 		responseObj.SetDataError()
 		return responseObj
 	}
 
 	sign, ok = commandMap["Sign"].(string)
 	if !ok {
-		logUtil.Log(fmt.Sprintf("Sign:%v，不是string类型", commandMap["Sign"]), logUtil.Error, true)
+		logUtil.Log(fmt.Sprintf("Sign:%v，不是string类型", commandMap), logUtil.Error, true)
 		responseObj.SetDataError()
 		return responseObj
 	}
 
 	extraMsg, ok = commandMap["ExtraMsg"].(string)
 	if !ok {
-		logUtil.Log(fmt.Sprintf("ExtraMsg:%v，不是string类型", commandMap["ExtraMsg"]), logUtil.Error, true)
+		logUtil.Log(fmt.Sprintf("ExtraMsg:%v，不是string类型", commandMap), logUtil.Error, true)
 		responseObj.SetDataError()
 		return responseObj
 	}
@@ -252,21 +252,21 @@ func updatePlayerInfo(clientObj *client.Client, playerObj *player.Player, ct com
 
 	name, ok = commandMap["Name"].(string)
 	if !ok {
-		logUtil.Log(fmt.Sprintf("Name:%v，不是string类型", commandMap["Name"]), logUtil.Error, true)
+		logUtil.Log(fmt.Sprintf("Name:%v，不是string类型", commandMap), logUtil.Error, true)
 		responseObj.SetDataError()
 		return responseObj
 	}
 
 	unionId, ok = commandMap["UnionId"].(string)
 	if !ok {
-		logUtil.Log(fmt.Sprintf("UnionId:%v，不是string类型", commandMap["UnionId"]), logUtil.Error, true)
+		logUtil.Log(fmt.Sprintf("UnionId:%v，不是string类型", commandMap), logUtil.Error, true)
 		responseObj.SetDataError()
 		return responseObj
 	}
 
 	extraMsg, ok = commandMap["ExtraMsg"].(string)
 	if !ok {
-		logUtil.Log(fmt.Sprintf("ExtraMsg:%v，不是string类型", commandMap["ExtraMsg"]), logUtil.Error, true)
+		logUtil.Log(fmt.Sprintf("ExtraMsg:%v，不是string类型", commandMap), logUtil.Error, true)
 		responseObj.SetDataError()
 		return responseObj
 	}
@@ -316,7 +316,7 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 
 	channelType_float, ok := commandMap["ChannelType"].(float64)
 	if !ok {
-		logUtil.Log(fmt.Sprintf("ChannelType:%v，不是int类型", commandMap["ChannelType"]), logUtil.Error, true)
+		logUtil.Log(fmt.Sprintf("ChannelType:%v，不是int类型", commandMap), logUtil.Error, true)
 		responseObj.SetDataError()
 		return responseObj
 	}
@@ -326,7 +326,7 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 
 	message, ok = commandMap["Message"].(string)
 	if !ok {
-		logUtil.Log(fmt.Sprintf("Message:%v，不是string类型", commandMap["Message"]), logUtil.Error, true)
+		logUtil.Log(fmt.Sprintf("Message:%v，不是string类型", commandMap), logUtil.Error, true)
 		responseObj.SetDataError()
 		return responseObj
 	}
@@ -359,7 +359,7 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 	case channelType.Private:
 		toPlayerId, ok := commandMap["ToPlayerId"].(string)
 		if !ok {
-			logUtil.Log(fmt.Sprintf("ToPlayerId:%v，不是string类型", commandMap["ToPlayerId"]), logUtil.Error, true)
+			logUtil.Log(fmt.Sprintf("ToPlayerId:%v，不是string类型", commandMap), logUtil.Error, true)
 			responseObj.SetDataError()
 			return responseObj
 		}
