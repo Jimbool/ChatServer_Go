@@ -90,11 +90,14 @@ func HanleRequest(clientObj *client.Client, request []byte) {
 	}
 
 	// 解析Command(是map[string]interface{}类型)
-	commandMap, ok := requestMap["Command"].(map[string]interface{})
-	if !ok {
-		logUtil.Log(fmt.Sprintf("commandMap:%v，不是map类型", requestMap), logUtil.Error, true)
-		responseObj.SetDataError()
-		return
+	var commandMap map[string]interface{}
+	if responseObj.CommandType != commandType.Logout {
+		commandMap, ok = requestMap["Command"].(map[string]interface{})
+		if !ok {
+			logUtil.Log(fmt.Sprintf("commandMap:%v，不是map类型", requestMap), logUtil.Error, true)
+			responseObj.SetDataError()
+			return
+		}
 	}
 
 	// 根据不同的请求方法，来调用不同的处理方式
