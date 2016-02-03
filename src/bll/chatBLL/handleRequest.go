@@ -16,6 +16,7 @@ import (
 	"github.com/Jordanzuo/goutil/securityUtil"
 	"github.com/Jordanzuo/goutil/stringUtil"
 	"sync"
+	"time"
 )
 
 var (
@@ -47,6 +48,15 @@ func pushMessageAfterLogin(clientObj *client.Client) {
 // request：请求内容字节数组(json格式)
 // 返回值：无
 func HanleRequest(clientObj *client.Client, request []byte) {
+	start := time.Now().Unix()
+	defer func() {
+		end := time.Now().Unix()
+		duration := end - start
+		if duration > 3 {
+			logUtil.Log(fmt.Sprintf("请求内容为：%s，请求时间为%d", string(request), duration), logUtil.Warn, true)
+		}
+	}()
+
 	responseObj := responseDataObject.NewSocketResponseObject(commandType.Login)
 
 	// 最后将responseObject发送到客户端
