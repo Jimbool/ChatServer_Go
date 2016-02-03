@@ -1,22 +1,13 @@
 package playerDAL
 
 import (
-	"fmt"
 	"github.com/Jordanzuo/ChatServer_Go/src/dal"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
-	"github.com/Jordanzuo/goutil/logUtil"
 	"time"
 )
 
 func GetPlayer(id string) (*player.Player, bool) {
 	sql := "SELECT Id, Name, UnionId, ExtraMsg, RegisterTime, LoginTime, IsForbidden, SilentEndTime FROM player WHERE Id = ?;"
-	// log begin
-	start := time.Now().Unix()
-	defer func() {
-		end := time.Now().Unix()
-		logUtil.Log(fmt.Sprintf("%s执行耗时%d", sql, (end-start)), logUtil.Fatal, true)
-	}()
-	// log end
 	rows, err := dal.ChatDB().Query(sql, id)
 	if err != nil {
 		panic(err)
@@ -48,13 +39,6 @@ func Insert(player *player.Player) {
             VALUES
                 (?, ?, ?, ?, ?, ?, ?, ?);
     `
-	// log begin
-	start := time.Now().Unix()
-	defer func() {
-		end := time.Now().Unix()
-		logUtil.Log(fmt.Sprintf("%s执行耗时%d", sql, (end-start)), logUtil.Fatal, true)
-	}()
-	// log end
 	stmt, err := dal.ChatDB().Prepare(sql)
 	if err != nil {
 		panic(err)
@@ -71,13 +55,6 @@ func Insert(player *player.Player) {
 
 func UpdateInfo(player *player.Player) {
 	sql := "UPDATE player SET Name = ?, UnionId = ?, ExtraMsg = ? WHERE Id = ?"
-	// log begin
-	start := time.Now().Unix()
-	defer func() {
-		end := time.Now().Unix()
-		logUtil.Log(fmt.Sprintf("%s执行耗时%d", sql, (end-start)), logUtil.Fatal, true)
-	}()
-	// log end
 	stmt, err := dal.ChatDB().Prepare(sql)
 	if err != nil {
 		panic(err)
@@ -94,13 +71,6 @@ func UpdateInfo(player *player.Player) {
 
 func UpdateLoginTime(player *player.Player) {
 	sql := "UPDATE player SET LoginTime = ? WHERE Id = ?"
-	// log begin
-	start := time.Now().Unix()
-	defer func() {
-		end := time.Now().Unix()
-		logUtil.Log(fmt.Sprintf("%s执行耗时%d", sql, (end-start)), logUtil.Fatal, true)
-	}()
-	// log end
 	stmt, err := dal.ChatDB().Prepare(sql)
 	if err != nil {
 		panic(err)
@@ -117,13 +87,6 @@ func UpdateLoginTime(player *player.Player) {
 
 func UpdateForbiddenStatus(player *player.Player) {
 	sql := "UPDATE player SET IsForbidden = ? WHERE Id = ?"
-	// log begin
-	start := time.Now().Unix()
-	defer func() {
-		end := time.Now().Unix()
-		logUtil.Log(fmt.Sprintf("%s执行耗时%d", sql, (end-start)), logUtil.Fatal, true)
-	}()
-	// log end
 	stmt, err := dal.ChatDB().Prepare(sql)
 	if err != nil {
 		panic(err)
@@ -140,13 +103,6 @@ func UpdateForbiddenStatus(player *player.Player) {
 
 func UpdateSilentEndTime(player *player.Player) {
 	sql := "UPDATE player SET SilentEndTime = ? WHERE Id = ?"
-	// log begin
-	start := time.Now().Unix()
-	defer func() {
-		end := time.Now().Unix()
-		logUtil.Log(fmt.Sprintf("%s执行耗时%d", sql, (end-start)), logUtil.Fatal, true)
-	}()
-	// log end
 	stmt, err := dal.ChatDB().Prepare(sql)
 	if err != nil {
 		panic(err)
