@@ -13,6 +13,7 @@ func GetAppConfig() *config.AppConfig {
 		panic(err)
 	}
 
+	var appConfig *config.AppConfig
 	for rows.Next() {
 		var appId string
 		var appName string
@@ -22,8 +23,12 @@ func GetAppConfig() *config.AppConfig {
 			panic(err)
 		}
 
-		return config.NewAppConfig(appId, appName, appKey)
+		appConfig = config.NewAppConfig(appId, appName, appKey)
 	}
 
-	panic(errors.New("未找到config配置内容"))
+	if appConfig == nil {
+		panic(errors.New("未找到config配置内容"))
+	}
+
+	return appConfig
 }

@@ -17,7 +17,6 @@ import (
 	"github.com/Jordanzuo/goutil/stringUtil"
 	"sync"
 	"time"
-	"strings"
 )
 
 var (
@@ -49,12 +48,6 @@ func pushMessageAfterLogin(clientObj *client.Client) {
 // request：请求内容字节数组(json格式)
 // 返回值：无
 func HanleRequest(clientObj *client.Client, request []byte) {
-	content := string(request)
-	ifNeedLog := strings.Contains(content, "逆鳞苍夜") || strings.Contains(content, "寒月纵雨者")
-	if ifNeedLog {
-		logUtil.Log(fmt.Sprintf("1:%s",content), logUtil.Fatal, true)
-	}
-
 	start := time.Now().Unix()
 	defer func() {
 		end := time.Now().Unix()
@@ -70,12 +63,8 @@ func HanleRequest(clientObj *client.Client, request []byte) {
 	defer func() {
 		// 如果不成功，则向客户端发送数据；如果成功，则已经通过对应的方法发送结果，故不通过此处
 		if responseObj.Code != responseDataObject.Success {
-			playerBLL.SendToClient(clientObj, responseObj)			
-
-			if ifNeedLog {
-				logUtil.Log(fmt.Sprintf("2:,响应结果：%v", responseObj), logUtil.Fatal, true)
-			}
-		}		
+			playerBLL.SendToClient(clientObj, responseObj)
+		}
 	}()
 
 	// 解析请求字符串
@@ -121,11 +110,6 @@ func HanleRequest(clientObj *client.Client, request []byte) {
 		}
 	}
 
-	if ifNeedLog {
-		logUtil.Log(fmt.Sprintf("3:responseObj.CommandType:%v", responseObj.CommandType), logUtil.Fatal, true)
-		logUtil.Log(fmt.Sprintf("4:commandMap:%v", commandMap), logUtil.Fatal, true)
-	}
-
 	// 根据不同的请求方法，来调用不同的处理方式
 	switch responseObj.CommandType {
 	case commandType.Login:
@@ -138,10 +122,6 @@ func HanleRequest(clientObj *client.Client, request []byte) {
 		responseObj = updatePlayerInfo(clientObj, playerObj, responseObj.CommandType, commandMap)
 	default:
 		responseObj.SetResultStatus(responseDataObject.CommandTypeNotDefined)
-	}
-
-	if ifNeedLog {
-		logUtil.Log(fmt.Sprintf("5:responseObj:%v", responseObj), logUtil.Fatal, true)
 	}
 }
 
@@ -192,146 +172,70 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 		return responseObj
 	}
 
-	ifNeedLog := name == "逆鳞苍夜" || name == "寒月纵雨者"
-	if ifNeedLog {
-		logUtil.Log(fmt.Sprintf("11:%s",id), logUtil.Fatal, true)
-		logUtil.Log(fmt.Sprintf("12:%s",name), logUtil.Fatal, true)
-		logUtil.Log(fmt.Sprintf("13:%s",sign), logUtil.Fatal, true)
-		logUtil.Log(fmt.Sprintf("14:%s",extraMsg), logUtil.Fatal, true)
-	}
-
-	defer func(){
-		if ifNeedLog{
-			logUtil.Log(fmt.Sprintf("15:responseObj:%v", responseObj), logUtil.Fatal, true)		
-		}
-	}()
-
 	// 验证签名是否正确
 	if verifySign(id, name, sign) == false {
-		if ifNeedLog{
-			logUtil.Log("16", logUtil.Fatal, true)
-		}
-		responseObj.SetResultStatus(responseDataObject.SignError)		
+		responseObj.SetResultStatus(responseDataObject.SignError)
 		return responseObj
-	}
-
-	if ifNeedLog{
-		logUtil.Log("101", logUtil.Fatal, true)
 	}
 
 	// 判断玩家是否在缓存中已经存在
 	var playerObj *player.Player
 	if playerObj, ok = playerBLL.GetPlayer(id, false); ok {
-		if ifNeedLog{
-			logUtil.Log("102", logUtil.Fatal, true)
-		}
 		name = playerObj.Name
 		// 判断是否重复登陆
 		if playerObj.ClientId > 0 {
 			if oldClientObj, ok := clientBLL.GetClient(playerObj.ClientId); ok {
 				// 如果不是同一个客户端，则先给客户端发送在其他设备登陆信息，然后断开连接
 				if clientObj != oldClientObj {
-					if ifNeedLog{
-			logUtil.Log("17", logUtil.Fatal, true)
-		}
 					playerBLL.SendLoginAnotherDeviceMsg(oldClientObj)
 				}
 			}
 		}
 	} else {
-		if ifNeedLog{
-			logUtil.Log("103", logUtil.Fatal, true)
-		}
 		// 判断数据库中是否已经存在该玩家，如果不存在则表明是新玩家，先到游戏库中验证
 		if playerObj, ok = playerBLL.GetPlayer(id, true); !ok {
-			if ifNeedLog{
-				logUtil.Log("104", logUtil.Fatal, true)
-			}
 			// 验证玩家Id在游戏库中是否存在；
 			if gamePlayerName, gameUnionId, ok := playerBLL.GetGamePlayer(id); !ok {
-				if ifNeedLog{
-					logUtil.Log("18", logUtil.Fatal, true)
-				}
 				responseObj.SetResultStatus(responseDataObject.PlayerNotExist)
 				return responseObj
 			} else {
-				if ifNeedLog{
-					logUtil.Log("105", logUtil.Fatal, true)
-				}
 				if name != gamePlayerName {
-					if ifNeedLog{
-						logUtil.Log("19", logUtil.Fatal, true)
-					}
 					responseObj.SetResultStatus(responseDataObject.NameError)
 					return responseObj
 				}
 
 				if unionId != "" && unionId != "00000000-0000-0000-0000-000000000000" && unionId != gameUnionId {
-					if ifNeedLog{
-						logUtil.Log("20", logUtil.Fatal, true)
-					}
 					responseObj.SetResultStatus(responseDataObject.UnionIdError)
 					return responseObj
 				}
 			}
-			if ifNeedLog{
-				logUtil.Log("106", logUtil.Fatal, true)
-			}
 
 			playerObj = playerBLL.RegisterNewPlayer(id, name, unionId, extraMsg)
 			isNewPlayer = true
-			if ifNeedLog{
-				logUtil.Log("107", logUtil.Fatal, true)
-			}
 		}
 	}
 
 	// 判断玩家是否被封号
 	if playerObj.IsForbidden {
-		if ifNeedLog{
-			logUtil.Log("21", logUtil.Fatal, true)
-		}
 		responseObj.SetResultStatus(responseDataObject.PlayerIsForbidden)
 		return responseObj
-	}
-
-	if ifNeedLog{
-		logUtil.Log("108", logUtil.Fatal, true)
 	}
 
 	// 更新客户端对象的玩家Id
 	clientObj.PlayerLogin(id)
 
-	if ifNeedLog{
-		logUtil.Log("109", logUtil.Fatal, true)
-	}
-
 	// 更新玩家登录信息
 	playerBLL.UpdateLoginInfo(playerObj, clientObj, isNewPlayer)
-
-	if ifNeedLog{
-		logUtil.Log("110", logUtil.Fatal, true)
-	}
 
 	// 将玩家对象添加到玩家增加的channel中
 	playerBLL.RegisterPlayer(playerObj)
 
-	if ifNeedLog{
-		logUtil.Log("111", logUtil.Fatal, true)
-	}
-
 	// 输出结果
 	playerBLL.SendToClient(clientObj, responseObj)
 
-	if ifNeedLog{
-		logUtil.Log("112", logUtil.Fatal, true)
-	}
-
 	// 推送历史信息
 	pushMessageAfterLogin(clientObj)
-	if ifNeedLog{
-			logUtil.Log("22", logUtil.Fatal, true)
-	}
+
 	return responseObj
 }
 
@@ -339,7 +243,7 @@ func logout(clientObj *client.Client, playerObj *player.Player, ct commandType.C
 	responseObj := responseDataObject.NewSocketResponseObject(ct)
 
 	// 玩家登出
-	clientObj.PlayerLogout()
+	clientObj.LogoutAndQuit()
 
 	// 将玩家对象从缓存中移除
 	playerBLL.UnRegisterPlayer(playerObj)

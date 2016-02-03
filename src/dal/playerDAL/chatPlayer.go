@@ -3,18 +3,15 @@ package playerDAL
 import (
 	"github.com/Jordanzuo/ChatServer_Go/src/dal"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
-	"sync/atomic"
-	"time"	
+	"time"
 )
 
 func GetPlayer(id string) (*player.Player, bool) {
-	atomic.AddInt32(&GamePlayerTotalCount, 1)
 	sql := "SELECT Id, Name, UnionId, ExtraMsg, RegisterTime, LoginTime, IsForbidden, SilentEndTime FROM player WHERE Id = ?;"
 	rows, err := dal.ChatDB().Query(sql, id)
 	if err != nil {
 		panic(err)
 	}
-	atomic.AddInt32(&GamePlayerSucceedCount, 1)
 
 	var playerObj *player.Player
 	for rows.Next() {

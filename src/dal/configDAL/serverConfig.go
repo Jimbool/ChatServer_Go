@@ -13,16 +13,22 @@ func GetServerConfig(id int) (*config.SocketServerConfig, *config.WebServerConfi
 		panic(err)
 	}
 
+	var socketServerConfig *config.SocketServerConfig
+	var webServerConfig *config.WebServerConfig
 	for rows.Next() {
-		var socketServerConfig string
-		var webServerConfig string
-		err := rows.Scan(&socketServerConfig, &webServerConfig)
+		var socketServerConfigStr string
+		var webServerConfigStr string
+		err := rows.Scan(&socketServerConfigStr, &webServerConfigStr)
 		if err != nil {
 			panic(err)
 		}
 
-		return config.NewSocketServerConfig(socketServerConfig), config.NewWebServerConfig(webServerConfig)
+		socketServerConfig, webServerConfig = config.NewSocketServerConfig(socketServerConfigStr), config.NewWebServerConfig(webServerConfigStr)
 	}
 
-	panic(errors.New("未找到SocketServerConfig, WebServerConfig配置内容"))
+	if socketServerConfig == nil || webServerConfig == nil {
+		panic(errors.New("未找到SocketServerConfig, WebServerConfig配置内容"))
+	}
+
+	return socketServerConfig, webServerConfig
 }
