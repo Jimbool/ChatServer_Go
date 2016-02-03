@@ -64,6 +64,7 @@ func HanleRequest(clientObj *client.Client, request []byte) {
 		// 如果不成功，则向客户端发送数据；如果成功，则已经通过对应的方法发送结果，故不通过此处
 		if responseObj.Code != responseDataObject.Success {
 			playerBLL.SendToClient(clientObj, responseObj)
+			logUtil.Log(fmt.Sprintf("请求失败，本次请求内容为：%s，返回结果为：%v", string(request), responseObj), logUtil.Fatal, true)
 		}
 	}()
 
