@@ -9,7 +9,6 @@ import (
 )
 
 func GetPlayer(id string) (*player.Player, bool) {
-
 	sql := "SELECT Id, Name, UnionId, ExtraMsg, RegisterTime, LoginTime, IsForbidden, SilentEndTime FROM player WHERE Id = ?;"
 	// log begin
 	start := time.Now().Unix()
@@ -44,7 +43,6 @@ func GetPlayer(id string) (*player.Player, bool) {
 }
 
 func Insert(player *player.Player) {
-
 	sql := `INSERT INTO 
                 player(Id, Name, UnionId, ExtraMsg, RegisterTime, LoginTime, IsForbidden, SilentEndTime)
             VALUES
@@ -72,7 +70,6 @@ func Insert(player *player.Player) {
 }
 
 func UpdateInfo(player *player.Player) {
-
 	sql := "UPDATE player SET Name = ?, UnionId = ?, ExtraMsg = ? WHERE Id = ?"
 	// log begin
 	start := time.Now().Unix()
@@ -96,7 +93,6 @@ func UpdateInfo(player *player.Player) {
 }
 
 func UpdateLoginTime(player *player.Player) {
-
 	sql := "UPDATE player SET LoginTime = ? WHERE Id = ?"
 	// log begin
 	start := time.Now().Unix()
@@ -120,7 +116,6 @@ func UpdateLoginTime(player *player.Player) {
 }
 
 func UpdateForbiddenStatus(player *player.Player) {
-
 	sql := "UPDATE player SET IsForbidden = ? WHERE Id = ?"
 	// log begin
 	start := time.Now().Unix()
@@ -144,7 +139,6 @@ func UpdateForbiddenStatus(player *player.Player) {
 }
 
 func UpdateSilentEndTime(player *player.Player) {
-
 	sql := "UPDATE player SET SilentEndTime = ? WHERE Id = ?"
 	// log begin
 	start := time.Now().Unix()
