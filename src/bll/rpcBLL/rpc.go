@@ -29,7 +29,7 @@ func handleClientContent(clientObj *client.Client) {
 		if len(content) == 0 {
 			continue
 		} else {
-			chatBLL.HanleRequest(clientObj, content)
+			go chatBLL.HanleRequest(clientObj, content)
 		}
 	}
 }
@@ -52,7 +52,9 @@ func handleConn(conn net.Conn) {
 
 	// 将客户端对象添加到客户端移除的channel中
 	defer func() {
+		logUtil.Log(fmt.Sprintf("客户端连接准备断开，断开前客户端数量为%d，玩家数量为：%d", clientBLL.GetClientCount(), playerBLL.GetPlayerCount()), logUtil.Warn, true)
 		playerBLL.DisconnectByClient(clientObj, disconnectType.FromRpc)
+		logUtil.Log(fmt.Sprintf("客户端连接已将断开，断开后客户端数量为%d，玩家数量为：%d", clientBLL.GetClientCount(), playerBLL.GetPlayerCount()), logUtil.Warn, true)
 	}()
 
 	// 无限循环，不断地读取数据，解析数据，处理数据

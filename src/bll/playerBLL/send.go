@@ -10,7 +10,6 @@ import (
 	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/responseDataObject"
 	"github.com/Jordanzuo/goutil/logUtil"
-	"time"
 )
 
 // 服务器推送信息
@@ -39,7 +38,6 @@ func SendLoginAnotherDeviceMsg(clientObj *client.Client) {
 
 	// 先发送消息，然后再断开连接(中间休眠50ms，避免发送数据时有网络延迟)
 	responseResult(clientObj, responseObj)
-	time.Sleep(50 * time.Millisecond)
 	clientObj.LogoutAndQuit()
 }
 
@@ -51,7 +49,6 @@ func SendForbidMsg(clientObj *client.Client) {
 
 	// 先发送消息，然后再断开连接(中间休眠50ms，避免发送数据时有网络延迟)
 	responseResult(clientObj, responseObj)
-	time.Sleep(50 * time.Millisecond)
 	clientObj.LogoutAndQuit()
 }
 
