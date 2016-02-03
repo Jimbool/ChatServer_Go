@@ -29,7 +29,7 @@ func handleClientContent(clientObj *client.Client) {
 		if len(content) == 0 {
 			continue
 		} else {
-			chatBLL.HanleRequest(clientObj, content)
+			go chatBLL.HanleRequest(clientObj, content)
 		}
 	}
 }
@@ -80,7 +80,7 @@ func handleConn(conn net.Conn) {
 		clientObj.AppendContent(readBytes[:n])
 
 		// 处理数据
-		go handleClientContent(clientObj)
+		handleClientContent(clientObj)
 	}
 }
 
