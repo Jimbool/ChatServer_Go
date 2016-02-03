@@ -6,12 +6,13 @@ package clientBLL
 import (
 	"fmt"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/client"
+	"github.com/Jordanzuo/goutil/logUtil"
 	"sync"
 )
 
 var (
 	// 客户端连接列表
-	clientList = make(map[int32]*client.Client)
+	clientList = make(map[int32]*client.Client, 1024)
 
 	// 读写锁
 	mutex sync.RWMutex
@@ -32,9 +33,9 @@ func UnRegisterClient(clientObj *client.Client) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	fmt.Println("Before UnRegisterClient, count=", len(clientList))
+	logUtil.Log(fmt.Sprintf("Before UnRegisterClient, count=%d", len(clientList)), logUtil.Warn, true)
 	delete(clientList, clientObj.Id())
-	fmt.Println("After UnRegisterClient, count=", len(clientList))
+	logUtil.Log(fmt.Sprintf("After UnRegisterClient, count=%d", len(clientList)), logUtil.Warn, true)
 }
 
 // 返回过期的客户端列表

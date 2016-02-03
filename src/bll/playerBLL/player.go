@@ -1,14 +1,16 @@
 package playerBLL
 
 import (
+	"fmt"
 	"github.com/Jordanzuo/ChatServer_Go/src/dal/playerDAL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
+	"github.com/Jordanzuo/goutil/logUtil"
 	"sync"
 )
 
 var (
 	// 玩家列表
-	playerList = make(map[string]*player.Player)
+	playerList = make(map[string]*player.Player, 1024)
 
 	// 读写锁
 	mutex sync.RWMutex
@@ -29,7 +31,9 @@ func UnRegisterPlayer(playerObj *player.Player) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
+	logUtil.Log(fmt.Sprintf("Before UnRegisterPlayer, count=%d", len(playerList)), logUtil.Warn, true)
 	delete(playerList, playerObj.Id)
+	logUtil.Log(fmt.Sprintf("After UnRegisterPlayer, count=%d", len(playerList)), logUtil.Warn, true)
 }
 
 // 根据Id获取玩家对象（先从缓存中取，取不到再从数据库中去取）
