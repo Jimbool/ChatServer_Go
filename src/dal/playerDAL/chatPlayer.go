@@ -3,16 +3,20 @@ package playerDAL
 import (
 	"github.com/Jordanzuo/ChatServer_Go/src/dal"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/player"
-	"time"
+	"sync/atomic"
+	"time"	
 )
 
 func GetPlayer(id string) (*player.Player, bool) {
+	atomic.AddInt32(&GamePlayerTotalCount, 1)
 	sql := "SELECT Id, Name, UnionId, ExtraMsg, RegisterTime, LoginTime, IsForbidden, SilentEndTime FROM player WHERE Id = ?;"
 	rows, err := dal.ChatDB().Query(sql, id)
 	if err != nil {
 		panic(err)
 	}
+	atomic.AddInt32(&GamePlayerSucceedCount, 1)
 
+	var playerObj *player.Player
 	for rows.Next() {
 		var id string
 		var name string
@@ -27,10 +31,10 @@ func GetPlayer(id string) (*player.Player, bool) {
 			panic(err)
 		}
 
-		return player.NewPlayer(id, name, unionId, extraMsg, registerTime, loginTime, isForbidden, silentEndTime), true
+		playerObj = player.NewPlayer(id, name, unionId, extraMsg, registerTime, loginTime, isForbidden, silentEndTime)
 	}
 
-	return nil, false
+	return playerObj, playerObj != nil
 }
 
 func Insert(player *player.Player) {

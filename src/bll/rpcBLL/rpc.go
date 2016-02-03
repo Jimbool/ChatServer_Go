@@ -28,8 +28,8 @@ func handleClientContent(clientObj *client.Client) {
 		// 处理数据，如果长度为0则表示心跳包
 		if len(content) == 0 {
 			continue
-		} else {
-			go chatBLL.HanleRequest(clientObj, content)
+		} else {			
+			chatBLL.HanleRequest(clientObj, content)
 		}
 	}
 }
