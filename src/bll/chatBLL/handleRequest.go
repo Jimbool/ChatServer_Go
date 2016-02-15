@@ -61,6 +61,11 @@ func HanleRequest(clientObj *client.Client, request []byte) {
 
 	// 最后将responseObject发送到客户端
 	defer func() {
+		// 处理内部未处理的异常，以免导致主线程退出，从而导致系统崩溃
+		if r := recover(); r != nil {
+			logUtil.LogUnknownError(r)
+		}
+
 		// 如果不成功，则向客户端发送数据；如果成功，则已经通过对应的方法发送结果，故不通过此处
 		if responseObj.Code != responseDataObject.Success {
 			playerBLL.SendToClient(clientObj, responseObj)
