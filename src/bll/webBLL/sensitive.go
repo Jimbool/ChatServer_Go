@@ -26,7 +26,7 @@ func sensitiveCallback(w http.ResponseWriter, r *http.Request) *responseDataObje
 	err := writeRequestLog(sensitiveAPIName, r)
 	if err != nil {
 		logUtil.Log(err.Error(), logUtil.Error, true)
-		responseObj.SetResultStatus(responseDataObject.DataError)
+		responseObj.SetDataError()
 		return responseObj
 	}
 

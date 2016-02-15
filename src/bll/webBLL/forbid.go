@@ -27,7 +27,7 @@ func forbidCallback(w http.ResponseWriter, r *http.Request) *responseDataObject.
 	err := writeRequestLog(forbidAPIName, r)
 	if err != nil {
 		logUtil.Log(err.Error(), logUtil.Error, true)
-		responseObj.SetResultStatus(responseDataObject.DataError)
+		responseObj.SetDataError()
 		return responseObj
 	}
 
@@ -39,13 +39,13 @@ func forbidCallback(w http.ResponseWriter, r *http.Request) *responseDataObject.
 	// 类型转换
 	var _type int
 	if _type, err = strconv.Atoi(_type_str); err != nil {
-		responseObj.SetResultStatus(responseDataObject.APIDataError)
+		responseObj.SetAPIDataError()
 		return responseObj
 	}
 
 	// 验证类型是否正确(0:查看封号状态 1:封号 2:解封)
 	if _type != 0 && _type != 1 && _type != 2 {
-		responseObj.SetResultStatus(responseDataObject.APIDataError)
+		responseObj.SetAPIDataError()
 		return responseObj
 	}
 
@@ -61,7 +61,6 @@ func forbidCallback(w http.ResponseWriter, r *http.Request) *responseDataObject.
 		responseObj.SetResultStatus(responseDataObject.DataError)
 		return responseObj
 	}
-
 	if !ok {
 		responseObj.SetResultStatus(responseDataObject.PlayerNotExist)
 		return responseObj

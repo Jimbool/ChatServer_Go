@@ -26,7 +26,7 @@ func pushCallback(w http.ResponseWriter, r *http.Request) *responseDataObject.We
 	err := writeRequestLog(pushAPIName, r)
 	if err != nil {
 		logUtil.Log(err.Error(), logUtil.Error, true)
-		responseObj.SetResultStatus(responseDataObject.DataError)
+		responseObj.SetDataError()
 		return responseObj
 	}
 
