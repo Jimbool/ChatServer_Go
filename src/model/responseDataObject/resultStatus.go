@@ -11,6 +11,12 @@ const (
 	// 数据错误
 	DataError
 
+	// API数据错误
+	APIDataError
+
+	// 客户端数据错误
+	ClientDataError
+
 	// 命令类型未定义
 	CommandTypeNotDefined
 
@@ -58,6 +64,8 @@ const (
 var status = [...]string{
 	"Success",
 	"DataError",
+	"APIDataError",
+	"ClientDataError",
 	"CommandTypeNotDefined",
 	"SignError",
 	"NoLogin",

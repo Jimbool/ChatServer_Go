@@ -49,26 +49,20 @@ func pushMessageAfterLogin(clientObj *client.Client) {
 // 返回值：无
 func HanleRequest(clientObj *client.Client, request []byte) {
 	start := time.Now().Unix()
-	defer func() {
-		end := time.Now().Unix()
-		duration := end - start
-		if duration > 3 {
-			logUtil.Log(fmt.Sprintf("请求内容为：%s，请求时间为%d", string(request), duration), logUtil.Warn, true)
-		}
-	}()
-
 	responseObj := responseDataObject.NewSocketResponseObject(commandType.Login)
 
 	// 最后将responseObject发送到客户端
 	defer func() {
-		// 处理内部未处理的异常，以免导致主线程退出，从而导致系统崩溃
-		if r := recover(); r != nil {
-			logUtil.LogUnknownError(r)
-		}
-
 		// 如果不成功，则向客户端发送数据；如果成功，则已经通过对应的方法发送结果，故不通过此处
 		if responseObj.Code != responseDataObject.Success {
 			playerBLL.SendToClient(clientObj, responseObj)
+		}
+
+		// 如果处理的时间超过3s，则记录下来以便于后续分析
+		end := time.Now().Unix()
+		duration := end - start
+		if duration > 3 {
+			logUtil.Log(fmt.Sprintf("请求内容为：%s，请求时间为%d秒", string(request), duration), logUtil.Warn, true)
 		}
 	}()
 
@@ -98,7 +92,12 @@ func HanleRequest(clientObj *client.Client, request []byte) {
 
 	// 如果不是Login方法，则判断Client对象所对应的玩家对象是否存在（因为当是Login方法时，Player对象尚不存在）
 	if responseObj.CommandType != commandType.Login {
-		if playerObj, ok = playerBLL.GetPlayer(clientObj.PlayerId(), false); !ok {
+		playerObj, ok, err = playerBLL.GetPlayer(clientObj.PlayerId(), false)
+		if err != nil {
+			responseObj.SetResultStatus(responseDataObject.DataError)
+			return
+		}
+		if !ok {
 			responseObj.SetResultStatus(responseDataObject.NoLogin)
 			return
 		}
@@ -141,6 +140,7 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 	var sign string
 	var extraMsg string
 	var isNewPlayer bool
+	var err error
 
 	id, ok = commandMap["Id"].(string)
 	if !ok {
@@ -185,7 +185,13 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 
 	// 判断玩家是否在缓存中已经存在
 	var playerObj *player.Player
-	if playerObj, ok = playerBLL.GetPlayer(id, false); ok {
+	playerObj, ok, err = playerBLL.GetPlayer(id, false)
+	if err != nil {
+		responseObj.SetResultStatus(responseDataObject.DataError)
+		return responseObj
+	}
+
+	if ok {
 		name = playerObj.Name
 		// 判断是否重复登陆
 		if playerObj.ClientId > 0 {
@@ -198,9 +204,18 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 		}
 	} else {
 		// 判断数据库中是否已经存在该玩家，如果不存在则表明是新玩家，先到游戏库中验证
-		if playerObj, ok = playerBLL.GetPlayer(id, true); !ok {
-			// 验证玩家Id在游戏库中是否存在；
-			if gamePlayerName, gameUnionId, ok := playerBLL.GetGamePlayer(id); !ok {
+		playerObj, ok, err = playerBLL.GetPlayer(id, true)
+		if err != nil {
+			responseObj.SetResultStatus(responseDataObject.DataError)
+			return responseObj
+		}
+		if !ok {
+			// 验证玩家Id在游戏库中是否存在
+			gamePlayerName, gameUnionId, ok, err := playerBLL.GetGamePlayer(id)
+			if err != nil {
+				responseObj.SetResultStatus(responseDataObject.DataError)
+				return responseObj
+			} else if !ok {
 				responseObj.SetResultStatus(responseDataObject.PlayerNotExist)
 				return responseObj
 			} else {
@@ -232,7 +247,7 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 	// 更新玩家登录信息
 	playerBLL.UpdateLoginInfo(playerObj, clientObj, isNewPlayer)
 
-	// 将玩家对象添加到玩家增加的channel中
+	// 将玩家对象添加到玩家列表中
 	playerBLL.RegisterPlayer(playerObj)
 
 	// 输出结果
@@ -291,8 +306,12 @@ func updatePlayerInfo(clientObj *client.Client, playerObj *player.Player, ct com
 
 	// 如果玩家名或公会Id有改变，则到游戏库中去验证是否是正确的名称
 	if name != playerObj.Name || unionId != playerObj.UnionId {
-		// 验证玩家Id在游戏库中是否存在；
-		if gamePlayerName, gameUnionId, ok := playerBLL.GetGamePlayer(playerObj.Id); !ok {
+		// 验证玩家Id在游戏库中是否存在
+		gamePlayerName, gameUnionId, ok, err := playerBLL.GetGamePlayer(playerObj.Id)
+		if err != nil {
+			responseObj.SetResultStatus(responseDataObject.DataError)
+			return responseObj
+		} else if !ok {
 			responseObj.SetResultStatus(responseDataObject.PlayerNotExist)
 			return responseObj
 		} else {
@@ -331,6 +350,7 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 	var ok bool
 	var channelType_real channelType.ChannelType
 	var message string
+	var err error
 
 	channelType_float, ok := commandMap["ChannelType"].(float64)
 	if !ok {
@@ -389,7 +409,11 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 		}
 
 		// 获得目标玩家对象
-		toPlayerObj, ifToPlayerExists = playerBLL.GetPlayer(toPlayerId, false)
+		toPlayerObj, ifToPlayerExists, err = playerBLL.GetPlayer(toPlayerId, false)
+		if err != nil {
+			responseObj.SetResultStatus(responseDataObject.DataError)
+			return responseObj
+		}
 		if !ifToPlayerExists {
 			responseObj.SetResultStatus(responseDataObject.NotFoundTarget)
 			return responseObj

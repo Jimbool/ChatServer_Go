@@ -49,10 +49,9 @@ func GameDB() *sql.DB {
 }
 
 func openMysqlConnection(connectionString string, maxOpenConns, maxIdleConns int) *sql.DB {
-	// 建立数据库连接
 	db, err := sql.Open("mysql", connectionString)
 	if err != nil {
-		panic(errors.New(fmt.Sprintf("打开游戏数据库失败,连接字符串为：%s", connectionString)))
+		panic(errors.New(fmt.Sprintf("打开数据库失败,连接字符串为：%s", connectionString)))
 	}
 
 	if maxOpenConns > 0 && maxIdleConns > 0 {
@@ -60,13 +59,15 @@ func openMysqlConnection(connectionString string, maxOpenConns, maxIdleConns int
 		db.SetMaxIdleConns(maxIdleConns)
 	}
 
-	db.Ping()
+	if err := db.Ping(); err != nil {
+		panic(errors.New(fmt.Sprintf("Ping数据库失败,连接字符串为：%s", connectionString)))
+	}
 
 	return db
 }
 
+// 每分钟ping一次数据库
 func ping() {
-	// 每分钟ping一次数据库
 	for {
 		time.Sleep(time.Minute)
 

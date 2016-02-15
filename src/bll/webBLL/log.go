@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func writeRequestLog(apiName string, r *http.Request) {
+func writeRequestLog(apiName string, r *http.Request) error {
 	log, _ := json.Marshal(r.Form)
-	go requestLogDAL.Insert(apiName, string(log))
+	return requestLogDAL.Insert(apiName, string(log))
 }

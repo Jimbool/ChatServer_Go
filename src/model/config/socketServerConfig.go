@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -18,7 +19,7 @@ type SocketServerConfig struct {
 func NewSocketServerConfig(socketServerConfigStr string) *SocketServerConfig {
 	var config *SocketServerConfig
 	if err := json.Unmarshal([]byte(socketServerConfigStr), &config); err != nil {
-		panic(err)
+		panic(errors.New(fmt.Sprintf("反序列化数据出错，原始数据位：%s，错误信息为：%s", socketServerConfigStr, err)))
 	}
 
 	return config

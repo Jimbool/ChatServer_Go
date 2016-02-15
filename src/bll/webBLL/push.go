@@ -1,7 +1,6 @@
 package webBLL
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/configBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/playerBLL"
@@ -11,24 +10,25 @@ import (
 	"net/http"
 )
 
-func pushCallback(w http.ResponseWriter, r *http.Request) {
+var (
+	pushAPIName = "push"
+)
+
+func init() {
+	registerAPI(pushAPIName, pushCallback)
+}
+
+func pushCallback(w http.ResponseWriter, r *http.Request) *responseDataObject.WebResponseObject {
 	r.ParseForm()
 	responseObj := responseDataObject.NewWebResponseObject()
 
-	defer func() {
-		// 捕获异常
-		if r := recover(); r != nil {
-			logUtil.LogUnknownError(r)
-			responseObj.SetResultStatus(responseDataObject.DataError)
-		}
-
-		// 输出结果给客户端
-		responseBytes, _ := json.Marshal(responseObj)
-		fmt.Fprintf(w, string(responseBytes))
-	}()
-
-	// 添加日志
-	writeRequestLog("push", r)
+	// 记录日志
+	err := writeRequestLog(pushAPIName, r)
+	if err != nil {
+		logUtil.Log(err.Error(), logUtil.Error, true)
+		responseObj.SetResultStatus(responseDataObject.DataError)
+		return responseObj
+	}
 
 	// 解析数据
 	message := r.Form["Message"][0]
@@ -37,11 +37,13 @@ func pushCallback(w http.ResponseWriter, r *http.Request) {
 	// 验证签名
 	if verifyPushSign(message, sign) == false {
 		responseObj.SetResultStatus(responseDataObject.SignError)
-		return
+		return responseObj
 	}
 
 	// 推送数据
 	go playerBLL.PushMessage(message)
+
+	return responseObj
 }
 
 func verifyPushSign(message string, sign string) bool {

@@ -1,7 +1,6 @@
 package webBLL
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/configBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/playerBLL"
@@ -13,24 +12,25 @@ import (
 	"time"
 )
 
-func silentCallback(w http.ResponseWriter, r *http.Request) {
+var (
+	silentAPIName = "silent"
+)
+
+func init() {
+	registerAPI(silentAPIName, silentCallback)
+}
+
+func silentCallback(w http.ResponseWriter, r *http.Request) *responseDataObject.WebResponseObject {
 	r.ParseForm()
 	responseObj := responseDataObject.NewWebResponseObject()
 
-	defer func() {
-		// 捕获异常
-		if r := recover(); r != nil {
-			logUtil.LogUnknownError(r)
-			responseObj.SetResultStatus(responseDataObject.DataError)
-		}
-
-		// 输出结果给客户端
-		responseBytes, _ := json.Marshal(responseObj)
-		fmt.Fprintf(w, string(responseBytes))
-	}()
-
-	// 添加日志
-	writeRequestLog("silent", r)
+	// 记录日志
+	err := writeRequestLog(silentAPIName, r)
+	if err != nil {
+		logUtil.Log(err.Error(), logUtil.Error, true)
+		responseObj.SetResultStatus(responseDataObject.DataError)
+		return responseObj
+	}
 
 	// 解析数据
 	playerId := r.Form["PlayerId"][0]
@@ -41,34 +41,38 @@ func silentCallback(w http.ResponseWriter, r *http.Request) {
 	// 类型转换
 	var _type int
 	var duration int
-	var err error
 
 	if _type, err = strconv.Atoi(_type_str); err != nil {
-		responseObj.SetResultStatus(responseDataObject.DataError)
-		return
+		responseObj.SetResultStatus(responseDataObject.APIDataError)
+		return responseObj
 	}
 	if duration, err = strconv.Atoi(duration_str); err != nil {
-		responseObj.SetResultStatus(responseDataObject.DataError)
-		return
+		responseObj.SetResultStatus(responseDataObject.APIDataError)
+		return responseObj
 	}
 
 	// 验证类型是否正确(0:查看禁言状态 1:禁言 2:解禁)
 	if _type != 0 && _type != 1 && _type != 2 {
-		responseObj.SetResultStatus(responseDataObject.DataError)
-		return
+		responseObj.SetResultStatus(responseDataObject.APIDataError)
+		return responseObj
 	}
 
 	// 验证签名
 	if verifySilentSign(playerId, _type, duration, sign) == false {
 		responseObj.SetResultStatus(responseDataObject.SignError)
-		return
+		return responseObj
 	}
 
 	// 判断玩家是否存在
-	playerObj, ok := playerBLL.GetPlayer(playerId, true)
+	playerObj, ok, err := playerBLL.GetPlayer(playerId, true)
+	if err != nil {
+		responseObj.SetResultStatus(responseDataObject.DataError)
+		return responseObj
+	}
+
 	if !ok {
 		responseObj.SetResultStatus(responseDataObject.PlayerNotExist)
-		return
+		return responseObj
 	}
 
 	// 判断是否为查询状态
@@ -93,6 +97,8 @@ func silentCallback(w http.ResponseWriter, r *http.Request) {
 
 		playerBLL.UpdateSilentStatus(playerObj, silentEndTime)
 	}
+
+	return responseObj
 }
 
 func verifySilentSign(playerId string, _type int, duration int, sign string) bool {

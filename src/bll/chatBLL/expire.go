@@ -16,13 +16,6 @@ func init() {
 
 // 清理过期的客户端
 func clearExpiredClient() {
-	// 处理内部未处理的异常，以免导致主线程退出，从而导致系统崩溃
-	defer func() {
-		if r := recover(); r != nil {
-			logUtil.LogUnknownError(r)
-		}
-	}()
-
 	for {
 		// 休眠指定的时间（单位：秒）(放在此处是因为程序刚启动时并没有过期的客户端，所以先不用占用资源；并且此时LogPath尚未设置，如果直接执行后面的代码会出现panic异常)
 		time.Sleep(configBLL.CheckExpireInterval() * time.Second)

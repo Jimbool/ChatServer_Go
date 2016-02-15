@@ -32,6 +32,14 @@ func (responseObject *SocketResponseObject) SetDataError() {
 	responseObject.SetResultStatus(DataError)
 }
 
+func (responseObject *SocketResponseObject) SetAPIDataError() {
+	responseObject.SetResultStatus(APIDataError)
+}
+
+func (responseObject *SocketResponseObject) SetClientDataError() {
+	responseObject.SetResultStatus(APIDataError)
+}
+
 func (responseObject *SocketResponseObject) SetResultStatus(rs ResultStatus) {
 	responseObject.Code = rs
 	responseObject.Message = rs.String()

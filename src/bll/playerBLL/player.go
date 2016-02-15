@@ -38,26 +38,30 @@ func UnRegisterPlayer(playerObj *player.Player) {
 // 返回值：
 // 玩家对象
 // 是否存在该玩家
-func GetPlayer(id string, isLoadFromDB bool) (playerObj *player.Player, ok bool) {
+// 是否有错误
+func GetPlayer(id string, isLoadFromDB bool) (playerObj *player.Player, ok bool, err error) {
 	if id == "" {
-		return nil, false
+		return nil, false, nil
 	}
 
 	mutex.RLock()
 	if playerObj, ok = playerList[id]; !ok {
 		mutex.RUnlock()
 		if isLoadFromDB {
-			if playerObj, ok = playerDAL.GetPlayer(id); !ok {
-				return nil, false
+			playerObj, ok, err = playerDAL.GetPlayer(id)
+			if err != nil {
+				return nil, false, err
+			} else if !ok {
+				return nil, false, nil
 			} else {
-				return playerObj, true
+				return playerObj, true, nil
 			}
 		} else {
-			return nil, false
+			return nil, false, nil
 		}
 	} else {
 		mutex.RUnlock()
-		return playerObj, true
+		return playerObj, true, nil
 	}
 }
 

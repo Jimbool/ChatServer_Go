@@ -1,14 +1,16 @@
 package playerDAL
 
 import (
+	"errors"
+	"fmt"
 	"github.com/Jordanzuo/ChatServer_Go/src/dal"
 )
 
-func GetGamePlayer(id string) (string, string, bool) {
+func GetGamePlayer(id string) (string, string, bool, error) {
 	sql := "SELECT p.Name, g.GuildId FROM p_player p LEFT JOIN p_guild_info g ON p.Id = g.PlayerId WHERE p.Id = ?;"
 	rows, err := dal.GameDB().Query(sql, id)
 	if err != nil {
-		panic(err)
+		return "", "", false, errors.New(fmt.Sprintf("Query失败，错误信息：%s，sql:%s", err, sql))
 	}
 
 	var name string
@@ -17,7 +19,8 @@ func GetGamePlayer(id string) (string, string, bool) {
 		var guildId interface{}
 		err := rows.Scan(&name, &guildId)
 		if err != nil {
-			panic(err)
+			rows.Close()
+			return "", "", false, errors.New(fmt.Sprintf("Scan失败，错误信息：%s，sql:%s", err, sql))
 		}
 
 		if guildId != nil {
@@ -27,5 +30,5 @@ func GetGamePlayer(id string) (string, string, bool) {
 		}
 	}
 
-	return name, unionId, name != ""
+	return name, unionId, name != "", nil
 }

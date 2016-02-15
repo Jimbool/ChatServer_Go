@@ -2,6 +2,7 @@ package configDAL
 
 import (
 	"errors"
+	"fmt"
 	"github.com/Jordanzuo/ChatServer_Go/src/dal"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/config"
 )
@@ -10,7 +11,7 @@ func GetServerConfig(id int) (*config.SocketServerConfig, *config.WebServerConfi
 	sql := "SELECT SocketServerConfig, WebServerConfig FROM serverconfig WHERE ServerGroupId = ?;"
 	rows, err := dal.ChatDB().Query(sql, id)
 	if err != nil {
-		panic(err)
+		panic(errors.New(fmt.Sprintf("Query失败，错误信息：%s，sql:%s", err, sql)))
 	}
 
 	var socketServerConfig *config.SocketServerConfig
@@ -20,10 +21,11 @@ func GetServerConfig(id int) (*config.SocketServerConfig, *config.WebServerConfi
 		var webServerConfigStr string
 		err := rows.Scan(&socketServerConfigStr, &webServerConfigStr)
 		if err != nil {
-			panic(err)
+			panic(errors.New(fmt.Sprintf("Scan失败，错误信息：%s，sql:%s", err, sql)))
 		}
 
-		socketServerConfig, webServerConfig = config.NewSocketServerConfig(socketServerConfigStr), config.NewWebServerConfig(webServerConfigStr)
+		socketServerConfig = config.NewSocketServerConfig(socketServerConfigStr)
+		webServerConfig = config.NewWebServerConfig(webServerConfigStr)
 	}
 
 	if socketServerConfig == nil || webServerConfig == nil {

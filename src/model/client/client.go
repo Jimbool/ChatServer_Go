@@ -109,7 +109,7 @@ func (c *Client) AppendContent(content []byte) {
 // 获取有效的消息
 // 返回值：消息内容
 //		：是否含有有效数据
-func (c *Client) GetValieMessage() ([]byte, bool) {
+func (c *Client) GetValidMessage() ([]byte, bool) {
 	// 判断是否包含头部信息
 	if len(c.content) < HEADER_LENGTH {
 		return nil, false

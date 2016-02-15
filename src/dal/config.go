@@ -40,13 +40,13 @@ func init() {
 	// 读取配置文件（一次性读取整个文件，则使用ioutil）
 	bytes, err := ioutil.ReadFile(CONFIG_FILE_NAME)
 	if err != nil {
-		panic(err)
+		panic(errors.New("读取配置文件的内容出错"))
 	}
 
 	// 使用json反序列化
 	config := make(map[string]interface{})
 	if err = json.Unmarshal(bytes, &config); err != nil {
-		panic(err)
+		panic(errors.New("反序列化配置文件的内容出错"))
 	}
 
 	// 解析ServerGroupId

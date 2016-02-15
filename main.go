@@ -17,18 +17,13 @@ import (
 	_ "github.com/Jordanzuo/ChatServer_Go/src/bll/webBLL"
 )
 
-const (
-	// 日志文件路径后缀
-	LOG_PATH_SUFFIX = "LOG"
-)
-
 var (
 	wg sync.WaitGroup
 )
 
 func init() {
 	// 设置日志文件的存储目录
-	logUtil.SetLogPath(filepath.Join(fileUtil.GetCurrentPath(), LOG_PATH_SUFFIX))
+	logUtil.SetLogPath(filepath.Join(fileUtil.GetCurrentPath(), "LOG"))
 
 	// 设置WaitGroup需要等待的数量
 	wg.Add(1)

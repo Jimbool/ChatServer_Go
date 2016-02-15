@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 )
 
@@ -13,7 +14,7 @@ type WebServerConfig struct {
 func NewWebServerConfig(webServerConfigStr string) *WebServerConfig {
 	var config *WebServerConfig
 	if err := json.Unmarshal([]byte(webServerConfigStr), &config); err != nil {
-		panic(err)
+		panic(errors.New(fmt.Sprintf("反序列化数据出错，原始数据位：%s，错误信息为：%s", webServerConfigStr, err)))
 	}
 
 	return config
