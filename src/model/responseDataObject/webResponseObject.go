@@ -24,6 +24,14 @@ func (responseObject *WebResponseObject) SetDataError() {
 	responseObject.SetResultStatus(DataError)
 }
 
+func (responseObject *WebResponseObject) SetAPIDataError() {
+	responseObject.SetResultStatus(APIDataError)
+}
+
+func (responseObject *WebResponseObject) SetClientDataError() {
+	responseObject.SetResultStatus(APIDataError)
+}
+
 func (responseObject *WebResponseObject) SetResultStatus(rs ResultStatus) {
 	responseObject.Code = rs
 	responseObject.Message = rs.String()
