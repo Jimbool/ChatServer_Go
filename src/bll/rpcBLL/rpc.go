@@ -52,7 +52,7 @@ func handleConn(conn net.Conn) {
 	// 无限循环，不断地读取数据，解析数据，处理数据
 	for {
 		// 先读取数据，每次读取1024个字节
-		readBytes := make([]byte, 0, 1024)
+		readBytes := make([]byte, 1024)
 
 		// Read方法会阻塞，所以不用考虑异步的方式
 		n, err := conn.Read(readBytes)

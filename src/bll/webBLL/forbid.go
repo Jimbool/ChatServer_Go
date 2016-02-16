@@ -5,7 +5,6 @@ import (
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/configBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/playerBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/responseDataObject"
-	"github.com/Jordanzuo/goutil/logUtil"
 	"github.com/Jordanzuo/goutil/securityUtil"
 	"net/http"
 	"strconv"
@@ -24,9 +23,7 @@ func forbidCallback(w http.ResponseWriter, r *http.Request) *responseDataObject.
 	responseObj := responseDataObject.NewWebResponseObject()
 
 	// 记录日志
-	err := writeRequestLog(forbidAPIName, r)
-	if err != nil {
-		logUtil.Log(err.Error(), logUtil.Error, true)
+	if err := writeRequestLog(forbidAPIName, r); err != nil {
 		responseObj.SetDataError()
 		return responseObj
 	}
@@ -38,6 +35,7 @@ func forbidCallback(w http.ResponseWriter, r *http.Request) *responseDataObject.
 
 	// 类型转换
 	var _type int
+	var err error
 	if _type, err = strconv.Atoi(_type_str); err != nil {
 		responseObj.SetAPIDataError()
 		return responseObj
@@ -56,12 +54,12 @@ func forbidCallback(w http.ResponseWriter, r *http.Request) *responseDataObject.
 	}
 
 	// 判断玩家是否存在
-	playerObj, ok, err := playerBLL.GetPlayer(playerId, true)
+	playerObj, exists, err := playerBLL.GetPlayer(playerId, true)
 	if err != nil {
-		responseObj.SetResultStatus(responseDataObject.DataError)
+		responseObj.SetDataError()
 		return responseObj
 	}
-	if !ok {
+	if !exists {
 		responseObj.SetResultStatus(responseDataObject.PlayerNotExist)
 		return responseObj
 	}
@@ -71,7 +69,10 @@ func forbidCallback(w http.ResponseWriter, r *http.Request) *responseDataObject.
 		responseObj.SetData(playerObj.IsForbidden)
 	} else {
 		// 修改封号状态
-		playerBLL.UpdateForbidStatus(playerObj, _type == 1)
+		if err := playerBLL.UpdateForbidStatus(playerObj, _type == 1); err != nil {
+			responseObj.SetDataError()
+			return responseObj
+		}
 	}
 
 	return responseObj

@@ -5,7 +5,6 @@ import (
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/configBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/playerBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/responseDataObject"
-	"github.com/Jordanzuo/goutil/logUtil"
 	"github.com/Jordanzuo/goutil/securityUtil"
 	"net/http"
 	"strconv"
@@ -25,9 +24,7 @@ func silentCallback(w http.ResponseWriter, r *http.Request) *responseDataObject.
 	responseObj := responseDataObject.NewWebResponseObject()
 
 	// 记录日志
-	err := writeRequestLog(silentAPIName, r)
-	if err != nil {
-		logUtil.Log(err.Error(), logUtil.Error, true)
+	if err := writeRequestLog(silentAPIName, r); err != nil {
 		responseObj.SetDataError()
 		return responseObj
 	}
@@ -41,6 +38,7 @@ func silentCallback(w http.ResponseWriter, r *http.Request) *responseDataObject.
 	// 类型转换
 	var _type int
 	var duration int
+	var err error
 
 	if _type, err = strconv.Atoi(_type_str); err != nil {
 		responseObj.SetAPIDataError()
@@ -64,12 +62,12 @@ func silentCallback(w http.ResponseWriter, r *http.Request) *responseDataObject.
 	}
 
 	// 判断玩家是否存在
-	playerObj, ok, err := playerBLL.GetPlayer(playerId, true)
+	playerObj, exists, err := playerBLL.GetPlayer(playerId, true)
 	if err != nil {
 		responseObj.SetDataError()
 		return responseObj
 	}
-	if !ok {
+	if !exists {
 		responseObj.SetResultStatus(responseDataObject.PlayerNotExist)
 		return responseObj
 	}
@@ -94,7 +92,10 @@ func silentCallback(w http.ResponseWriter, r *http.Request) *responseDataObject.
 			}
 		}
 
-		playerBLL.UpdateSilentStatus(playerObj, silentEndTime)
+		if err := playerBLL.UpdateSilentStatus(playerObj, silentEndTime); err != nil {
+			responseObj.SetDataError()
+			return responseObj
+		}
 	}
 
 	return responseObj

@@ -51,10 +51,14 @@ func HanleRequest(clientObj *client.Client, request []byte) {
 	start := time.Now().Unix()
 	responseObj := responseDataObject.NewSocketResponseObject(commandType.Login)
 
-	// 最后将responseObject发送到客户端
 	defer func() {
-		// 如果不成功，则向客户端发送数据；如果成功，则已经通过对应的方法发送结果，故不通过此处
+		// 如果不成功，则向客户端发送数据；因为成功已经通过对应的方法发送结果，故不通过此处
 		if responseObj.Code != responseDataObject.Success {
+			// 如果是客户端数据错误，则将客户端请求数据记录下来
+			if responseObj.Code == responseDataObject.ClientDataError {
+				logUtil.Log(fmt.Sprintf("请求的数据为：%s, 返回的结果为客户端数据错误", string(request)), logUtil.Error, true)
+			}
+
 			playerBLL.SendToClient(clientObj, responseObj)
 		}
 
@@ -66,50 +70,50 @@ func HanleRequest(clientObj *client.Client, request []byte) {
 		}
 	}()
 
+	// 定义变量
+	var requestMap map[string]interface{}
+	var commandMap map[string]interface{}
+	var playerObj *player.Player
+	var exists bool
+	var ok bool
+	var err error
+
 	// 解析请求字符串
-	requestMap := make(map[string]interface{})
-	err := json.Unmarshal(request, &requestMap)
-	if err != nil {
-		logUtil.Log(fmt.Sprintf("反序列化%s出错，错误信息为：%s", string(request), err), logUtil.Error, true)
-		responseObj.SetDataError()
+	if err = json.Unmarshal(request, &requestMap); err != nil {
+		logUtil.Log(fmt.Sprintf("反序列化出错，错误信息为：%s", err), logUtil.Error, true)
+		responseObj.SetClientDataError()
 		return
 	}
 
 	// 解析CommandType
-	var ok bool
-	commandType_float, ok := requestMap["CommandType"].(float64)
-	if !ok {
-		logUtil.Log(fmt.Sprintf("CommandType:%v，不是int类型", requestMap), logUtil.Error, true)
-		responseObj.SetDataError()
+	if commandType_float, ok := requestMap["CommandType"].(float64); !ok {
+		logUtil.Log("CommandType不是int类型", logUtil.Error, true)
+		responseObj.SetClientDataError()
 		return
+	} else {
+		// 设置responseObject的CommandType
+		responseObj.SetCommandType(commandType.CommandType(int(commandType_float)))
 	}
-
-	// 设置responseObject的CommandType
-	responseObj.SetCommandType(commandType.CommandType(int(commandType_float)))
-
-	// 定义Player对象
-	var playerObj *player.Player
 
 	// 如果不是Login方法，则判断Client对象所对应的玩家对象是否存在（因为当是Login方法时，Player对象尚不存在）
 	if responseObj.CommandType != commandType.Login {
-		playerObj, ok, err = playerBLL.GetPlayer(clientObj.PlayerId(), false)
+		playerObj, exists, err = playerBLL.GetPlayer(clientObj.PlayerId(), false)
 		if err != nil {
-			responseObj.SetResultStatus(responseDataObject.DataError)
+			responseObj.SetDataError()
 			return
 		}
-		if !ok {
+
+		if !exists {
 			responseObj.SetResultStatus(responseDataObject.NoLogin)
 			return
 		}
 	}
 
-	// 解析Command(是map[string]interface{}类型)
-	var commandMap map[string]interface{}
+	// 解析Command(是map[string]interface{}类型)；只有当不是Logout方法时才解析，因为Logout时Command为空
 	if responseObj.CommandType != commandType.Logout {
-		commandMap, ok = requestMap["Command"].(map[string]interface{})
-		if !ok {
-			logUtil.Log(fmt.Sprintf("commandMap:%v，不是map类型", requestMap), logUtil.Error, true)
-			responseObj.SetDataError()
+		if commandMap, ok = requestMap["Command"].(map[string]interface{}); !ok {
+			logUtil.Log("commandMap不是map类型", logUtil.Error, true)
+			responseObj.SetClientDataError()
 			return
 		}
 	}
@@ -132,8 +136,9 @@ func HanleRequest(clientObj *client.Client, request []byte) {
 func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[string]interface{}) *responseDataObject.SocketResponseObject {
 	responseObj := responseDataObject.NewSocketResponseObject(ct)
 
-	// 解析参数
+	// 定义变量
 	var ok bool
+	var exists bool
 	var id string
 	var name string
 	var unionId string
@@ -141,39 +146,37 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 	var extraMsg string
 	var isNewPlayer bool
 	var err error
+	var playerObj *player.Player
+	var gamePlayerName string
+	var gameUnionId string
 
-	id, ok = commandMap["Id"].(string)
-	if !ok {
-		logUtil.Log(fmt.Sprintf("Id:%v，不是string类型", commandMap), logUtil.Error, true)
-		responseObj.SetDataError()
+	if id, ok = commandMap["Id"].(string); !ok {
+		logUtil.Log("Id不是string类型", logUtil.Error, true)
+		responseObj.SetClientDataError()
 		return responseObj
 	}
 
-	name, ok = commandMap["Name"].(string)
-	if !ok {
-		logUtil.Log(fmt.Sprintf("Name:%v，不是string类型", commandMap), logUtil.Error, true)
-		responseObj.SetDataError()
+	if name, ok = commandMap["Name"].(string); !ok {
+		logUtil.Log("Name不是string类型", logUtil.Error, true)
+		responseObj.SetClientDataError()
 		return responseObj
 	}
 
-	unionId, ok = commandMap["UnionId"].(string)
-	if !ok {
-		logUtil.Log(fmt.Sprintf("UnionId:%v，不是string类型", commandMap), logUtil.Error, true)
-		responseObj.SetDataError()
+	if unionId, ok = commandMap["UnionId"].(string); !ok {
+		logUtil.Log("UnionId不是string类型", logUtil.Error, true)
+		responseObj.SetClientDataError()
 		return responseObj
 	}
 
-	sign, ok = commandMap["Sign"].(string)
-	if !ok {
-		logUtil.Log(fmt.Sprintf("Sign:%v，不是string类型", commandMap), logUtil.Error, true)
-		responseObj.SetDataError()
+	if sign, ok = commandMap["Sign"].(string); !ok {
+		logUtil.Log("Sign不是string类型", logUtil.Error, true)
+		responseObj.SetClientDataError()
 		return responseObj
 	}
 
-	extraMsg, ok = commandMap["ExtraMsg"].(string)
-	if !ok {
-		logUtil.Log(fmt.Sprintf("ExtraMsg:%v，不是string类型", commandMap), logUtil.Error, true)
-		responseObj.SetDataError()
+	if extraMsg, ok = commandMap["ExtraMsg"].(string); !ok {
+		logUtil.Log("ExtraMsg不是string类型", logUtil.Error, true)
+		responseObj.SetClientDataError()
 		return responseObj
 	}
 
@@ -184,18 +187,18 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 	}
 
 	// 判断玩家是否在缓存中已经存在
-	var playerObj *player.Player
-	playerObj, ok, err = playerBLL.GetPlayer(id, false)
+	playerObj, exists, err = playerBLL.GetPlayer(id, false)
 	if err != nil {
-		responseObj.SetResultStatus(responseDataObject.DataError)
+		responseObj.SetDataError()
 		return responseObj
 	}
 
-	if ok {
+	if exists {
 		name = playerObj.Name
+
 		// 判断是否重复登陆
 		if playerObj.ClientId > 0 {
-			if oldClientObj, ok := clientBLL.GetClient(playerObj.ClientId); ok {
+			if oldClientObj, exists := clientBLL.GetClient(playerObj.ClientId); exists {
 				// 如果不是同一个客户端，则先给客户端发送在其他设备登陆信息，然后断开连接
 				if clientObj != oldClientObj {
 					playerBLL.SendLoginAnotherDeviceMsg(oldClientObj)
@@ -204,18 +207,19 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 		}
 	} else {
 		// 判断数据库中是否已经存在该玩家，如果不存在则表明是新玩家，先到游戏库中验证
-		playerObj, ok, err = playerBLL.GetPlayer(id, true)
+		playerObj, exists, err = playerBLL.GetPlayer(id, true)
 		if err != nil {
-			responseObj.SetResultStatus(responseDataObject.DataError)
+			responseObj.SetDataError()
 			return responseObj
 		}
-		if !ok {
+
+		if !exists {
 			// 验证玩家Id在游戏库中是否存在
-			gamePlayerName, gameUnionId, ok, err := playerBLL.GetGamePlayer(id)
+			gamePlayerName, gameUnionId, exists, err = playerBLL.GetGamePlayer(id)
 			if err != nil {
-				responseObj.SetResultStatus(responseDataObject.DataError)
+				responseObj.SetDataError()
 				return responseObj
-			} else if !ok {
+			} else if !exists {
 				responseObj.SetResultStatus(responseDataObject.PlayerNotExist)
 				return responseObj
 			} else {
@@ -230,7 +234,10 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 				}
 			}
 
-			playerObj = playerBLL.RegisterNewPlayer(id, name, unionId, extraMsg)
+			if playerObj, err = playerBLL.RegisterNewPlayer(id, name, unionId, extraMsg); err != nil {
+				responseObj.SetDataError()
+				return responseObj
+			}
 			isNewPlayer = true
 		}
 	}
@@ -245,7 +252,10 @@ func login(clientObj *client.Client, ct commandType.CommandType, commandMap map[
 	clientObj.PlayerLogin(id)
 
 	// 更新玩家登录信息
-	playerBLL.UpdateLoginInfo(playerObj, clientObj, isNewPlayer)
+	if err = playerBLL.UpdateLoginInfo(playerObj, clientObj, isNewPlayer); err != nil {
+		responseObj.SetDataError()
+		return responseObj
+	}
 
 	// 将玩家对象添加到玩家列表中
 	playerBLL.RegisterPlayer(playerObj)
@@ -268,50 +278,48 @@ func logout(clientObj *client.Client, playerObj *player.Player, ct commandType.C
 	// 将玩家对象从缓存中移除
 	playerBLL.UnRegisterPlayer(playerObj)
 
-	// 输出结果
-	playerBLL.SendToClient(clientObj, responseObj)
-
 	return responseObj
 }
 
 func updatePlayerInfo(clientObj *client.Client, playerObj *player.Player, ct commandType.CommandType, commandMap map[string]interface{}) *responseDataObject.SocketResponseObject {
 	responseObj := responseDataObject.NewSocketResponseObject(ct)
 
-	// 解析参数
+	// 定义变量
+	var exists bool
 	var ok bool
 	var name string
 	var unionId string
 	var extraMsg string
+	var err error
+	var gamePlayerName string
+	var gameUnionId string
 
-	name, ok = commandMap["Name"].(string)
-	if !ok {
-		logUtil.Log(fmt.Sprintf("Name:%v，不是string类型", commandMap), logUtil.Error, true)
-		responseObj.SetDataError()
+	if name, ok = commandMap["Name"].(string); !ok {
+		logUtil.Log("Name不是string类型", logUtil.Error, true)
+		responseObj.SetClientDataError()
 		return responseObj
 	}
 
-	unionId, ok = commandMap["UnionId"].(string)
-	if !ok {
-		logUtil.Log(fmt.Sprintf("UnionId:%v，不是string类型", commandMap), logUtil.Error, true)
-		responseObj.SetDataError()
+	if unionId, ok = commandMap["UnionId"].(string); !ok {
+		logUtil.Log("UnionId不是string类型", logUtil.Error, true)
+		responseObj.SetClientDataError()
 		return responseObj
 	}
 
-	extraMsg, ok = commandMap["ExtraMsg"].(string)
-	if !ok {
-		logUtil.Log(fmt.Sprintf("ExtraMsg:%v，不是string类型", commandMap), logUtil.Error, true)
-		responseObj.SetDataError()
+	if extraMsg, ok = commandMap["ExtraMsg"].(string); !ok {
+		logUtil.Log("ExtraMsg不是string类型", logUtil.Error, true)
+		responseObj.SetClientDataError()
 		return responseObj
 	}
 
 	// 如果玩家名或公会Id有改变，则到游戏库中去验证是否是正确的名称
 	if name != playerObj.Name || unionId != playerObj.UnionId {
 		// 验证玩家Id在游戏库中是否存在
-		gamePlayerName, gameUnionId, ok, err := playerBLL.GetGamePlayer(playerObj.Id)
+		gamePlayerName, gameUnionId, exists, err = playerBLL.GetGamePlayer(playerObj.Id)
 		if err != nil {
-			responseObj.SetResultStatus(responseDataObject.DataError)
+			responseObj.SetDataError()
 			return responseObj
-		} else if !ok {
+		} else if !exists {
 			responseObj.SetResultStatus(responseDataObject.PlayerNotExist)
 			return responseObj
 		} else {
@@ -328,7 +336,10 @@ func updatePlayerInfo(clientObj *client.Client, playerObj *player.Player, ct com
 	}
 
 	// 更新玩家信息
-	playerBLL.UpdateInfo(playerObj, name, unionId, extraMsg)
+	if err = playerBLL.UpdateInfo(playerObj, name, unionId, extraMsg); err != nil {
+		responseObj.SetDataError()
+		return responseObj
+	}
 
 	// 输出结果
 	playerBLL.SendToClient(clientObj, responseObj)
@@ -340,32 +351,32 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 	responseObj := responseDataObject.NewSocketResponseObject(ct)
 
 	// 判断玩家是否被禁言
-	isInSilent, _ := playerObj.IsInSilent()
-	if isInSilent {
+	if isInSilent, _ := playerObj.IsInSilent(); isInSilent {
 		responseObj.SetResultStatus(responseDataObject.PlayerIsInSilent)
 		return responseObj
 	}
 
-	// 解析参数
+	// 定义变量
 	var ok bool
 	var channelType_real channelType.ChannelType
 	var message string
 	var err error
+	var finalPlayerList = make([]*player.Player, 0, 1024)
+	var toPlayerId string
+	var toPlayerObj *player.Player
+	var ifToPlayerExists bool
 
-	channelType_float, ok := commandMap["ChannelType"].(float64)
-	if !ok {
-		logUtil.Log(fmt.Sprintf("ChannelType:%v，不是int类型", commandMap), logUtil.Error, true)
-		responseObj.SetDataError()
+	if channelType_float, ok := commandMap["ChannelType"].(float64); !ok {
+		logUtil.Log("ChannelType不是int类型", logUtil.Error, true)
+		responseObj.SetClientDataError()
 		return responseObj
+	} else {
+		channelType_real = channelType.ChannelType(int(channelType_float))
 	}
 
-	// 得到真实的ChannelType
-	channelType_real = channelType.ChannelType(int(channelType_float))
-
-	message, ok = commandMap["Message"].(string)
-	if !ok {
-		logUtil.Log(fmt.Sprintf("Message:%v，不是string类型", commandMap), logUtil.Error, true)
-		responseObj.SetDataError()
+	if message, ok = commandMap["Message"].(string); !ok {
+		logUtil.Log("Message不是string类型", logUtil.Error, true)
+		responseObj.SetClientDataError()
 		return responseObj
 	}
 
@@ -376,11 +387,6 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 
 	// 处理敏感词汇
 	message = sensitiveWordsBLL.HandleSensitiveWords(message)
-
-	// 定义变量
-	var finalPlayerList = make([]*player.Player, 0, 1024)
-	var ifToPlayerExists = false
-	var toPlayerObj *player.Player = nil
 
 	// 根据不同的聊天隐疾调用不同的片方法
 	switch channelType_real {
@@ -395,10 +401,9 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 
 		finalPlayerList = playerBLL.GetPlayerListInSameUnion(playerObj)
 	case channelType.Private:
-		toPlayerId, ok := commandMap["ToPlayerId"].(string)
-		if !ok {
-			logUtil.Log(fmt.Sprintf("ToPlayerId:%v，不是string类型", commandMap), logUtil.Error, true)
-			responseObj.SetDataError()
+		if toPlayerId, ok = commandMap["ToPlayerId"].(string); !ok {
+			logUtil.Log("ToPlayerId不是string类型", logUtil.Error, true)
+			responseObj.SetClientDataError()
 			return responseObj
 		}
 
@@ -414,6 +419,7 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 			responseObj.SetResultStatus(responseDataObject.DataError)
 			return responseObj
 		}
+
 		if !ifToPlayerExists {
 			responseObj.SetResultStatus(responseDataObject.NotFoundTarget)
 			return responseObj
@@ -422,7 +428,7 @@ func sendMessage(clientObj *client.Client, playerObj *player.Player, ct commandT
 		// 添加到列表中
 		finalPlayerList = append(finalPlayerList, playerObj, toPlayerObj)
 	default:
-		responseObj.SetDataError()
+		responseObj.SetClientDataError()
 		return responseObj
 	}
 

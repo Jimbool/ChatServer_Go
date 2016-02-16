@@ -38,31 +38,26 @@ func UnRegisterPlayer(playerObj *player.Player) {
 // 返回值：
 // 玩家对象
 // 是否存在该玩家
-// 是否有错误
-func GetPlayer(id string, isLoadFromDB bool) (playerObj *player.Player, ok bool, err error) {
+// 错误对象
+func GetPlayer(id string, isLoadFromDB bool) (playerObj *player.Player, exists bool, err error) {
 	if id == "" {
-		return nil, false, nil
+		return
 	}
 
 	mutex.RLock()
-	if playerObj, ok = playerList[id]; !ok {
+	// 没有使用defer mutex.RUnlock()是为了避免将数据库访问也纳入了Lock的范围，从而延长了锁的时间
+
+	if playerObj, exists = playerList[id]; !exists {
 		mutex.RUnlock()
+
 		if isLoadFromDB {
-			playerObj, ok, err = playerDAL.GetPlayer(id)
-			if err != nil {
-				return nil, false, err
-			} else if !ok {
-				return nil, false, nil
-			} else {
-				return playerObj, true, nil
-			}
-		} else {
-			return nil, false, nil
+			playerObj, exists, err = playerDAL.GetPlayer(id)
 		}
 	} else {
 		mutex.RUnlock()
-		return playerObj, true, nil
 	}
+
+	return
 }
 
 // 获取玩家数量

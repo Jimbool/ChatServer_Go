@@ -36,7 +36,7 @@ func SendLoginAnotherDeviceMsg(clientObj *client.Client) {
 	responseObj := responseDataObject.NewSocketResponseObject(commandType.Login)
 	responseObj.SetResultStatus(responseDataObject.LoginOnAnotherDevice)
 
-	// 先发送消息，然后再断开连接(中间休眠50ms，避免发送数据时有网络延迟)
+	// 先发送消息，然后再断开连接
 	responseResult(clientObj, responseObj)
 	clientObj.LogoutAndQuit()
 }
@@ -47,7 +47,7 @@ func SendForbidMsg(clientObj *client.Client) {
 	responseObj := responseDataObject.NewSocketResponseObject(commandType.Login)
 	responseObj.SetResultStatus(responseDataObject.PlayerIsForbidden)
 
-	// 先发送消息，然后再断开连接(中间休眠50ms，避免发送数据时有网络延迟)
+	// 先发送消息，然后再断开连接
 	responseResult(clientObj, responseObj)
 	clientObj.LogoutAndQuit()
 }

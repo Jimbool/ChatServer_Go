@@ -15,7 +15,7 @@ import (
 func DisconnectByClient(clientObj *client.Client, clinetDisconnectType disconnectType.ClientDisconnectType) {
 	// 将玩家从缓存中移除
 	if clientObj.PlayerId() != "" {
-		if playerObj, ok, err := GetPlayer(clientObj.PlayerId(), false); err == nil && ok {
+		if playerObj, exists, err := GetPlayer(clientObj.PlayerId(), false); err == nil && exists {
 			UnRegisterPlayer(playerObj)
 		}
 	}

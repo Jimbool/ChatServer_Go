@@ -13,12 +13,22 @@ var (
 )
 
 func init() {
-	sensitiveWordsList = sensitiveWordsDAL.GetList()
+	if tmpList, err := sensitiveWordsDAL.GetList(); err != nil {
+		panic(err)
+	} else {
+		sensitiveWordsList = tmpList
+	}
 }
 
 // 重新加载
-func Reload() {
-	sensitiveWordsList = sensitiveWordsDAL.GetList()
+func Reload() error {
+	if tmpList, err := sensitiveWordsDAL.GetList(); err != nil {
+		return err
+	} else {
+		sensitiveWordsList = tmpList
+	}
+
+	return nil
 }
 
 // 处理屏蔽词汇

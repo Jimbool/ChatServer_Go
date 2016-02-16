@@ -5,7 +5,6 @@ import (
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/configBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/playerBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/responseDataObject"
-	"github.com/Jordanzuo/goutil/logUtil"
 	"github.com/Jordanzuo/goutil/securityUtil"
 	"net/http"
 )
@@ -23,9 +22,7 @@ func pushCallback(w http.ResponseWriter, r *http.Request) *responseDataObject.We
 	responseObj := responseDataObject.NewWebResponseObject()
 
 	// 记录日志
-	err := writeRequestLog(pushAPIName, r)
-	if err != nil {
-		logUtil.Log(err.Error(), logUtil.Error, true)
+	if err := writeRequestLog(pushAPIName, r); err != nil {
 		responseObj.SetDataError()
 		return responseObj
 	}

@@ -5,7 +5,6 @@ import (
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/configBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/bll/sensitiveWordsBLL"
 	"github.com/Jordanzuo/ChatServer_Go/src/model/responseDataObject"
-	"github.com/Jordanzuo/goutil/logUtil"
 	"github.com/Jordanzuo/goutil/securityUtil"
 	"net/http"
 )
@@ -23,9 +22,7 @@ func sensitiveCallback(w http.ResponseWriter, r *http.Request) *responseDataObje
 	responseObj := responseDataObject.NewWebResponseObject()
 
 	// 记录日志
-	err := writeRequestLog(sensitiveAPIName, r)
-	if err != nil {
-		logUtil.Log(err.Error(), logUtil.Error, true)
+	if err := writeRequestLog(sensitiveAPIName, r); err != nil {
 		responseObj.SetDataError()
 		return responseObj
 	}
@@ -41,7 +38,10 @@ func sensitiveCallback(w http.ResponseWriter, r *http.Request) *responseDataObje
 	}
 
 	// 重新加载敏感词
-	sensitiveWordsBLL.Reload()
+	if err := sensitiveWordsBLL.Reload(); err != nil {
+		responseObj.SetDataError()
+		return responseObj
+	}
 
 	return responseObj
 }

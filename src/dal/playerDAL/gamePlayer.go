@@ -1,34 +1,33 @@
 package playerDAL
 
 import (
-	"errors"
+	"database/sql"
 	"fmt"
 	"github.com/Jordanzuo/ChatServer_Go/src/dal"
+	"github.com/Jordanzuo/goutil/logUtil"
 )
 
-func GetGamePlayer(id string) (string, string, bool, error) {
-	sql := "SELECT p.Name, g.GuildId FROM p_player p LEFT JOIN p_guild_info g ON p.Id = g.PlayerId WHERE p.Id = ?;"
-	rows, err := dal.GameDB().Query(sql, id)
-	if err != nil {
-		return "", "", false, errors.New(fmt.Sprintf("Query失败，错误信息：%s，sql:%s", err, sql))
-	}
+func GetGamePlayer(id string) (name string, unionId string, exists bool, err error) {
+	command := "SELECT p.Name, g.GuildId FROM p_player p LEFT JOIN p_guild_info g ON p.Id = g.PlayerId WHERE p.Id = ?;"
 
-	var name string
-	var unionId string
-	for rows.Next() {
-		var guildId interface{}
-		err := rows.Scan(&name, &guildId)
-		if err != nil {
-			rows.Close()
-			return "", "", false, errors.New(fmt.Sprintf("Scan失败，错误信息：%s，sql:%s", err, sql))
-		}
-
-		if guildId != nil {
-			if unionIdArr, ok := guildId.([]byte); ok {
-				unionId = string(unionIdArr)
-			}
+	var guildId interface{}
+	if err = dal.GameDB().QueryRow(command, id).Scan(&name, &guildId); err != nil {
+		if err == sql.ErrNoRows {
+			// 重置err，使其为nil；因为这代表的是没有查找到数据，而不是真正的错误
+			err = nil
+			return
+		} else {
+			logUtil.Log(fmt.Sprintf("Scan失败，错误信息：%s，command:%s", err, command), logUtil.Error, true)
+			return
 		}
 	}
 
-	return name, unionId, name != "", nil
+	// 处理公会Id
+	if guildId != nil {
+		if unionIdArr, ok := guildId.([]byte); ok {
+			unionId = string(unionIdArr)
+		}
+	}
+
+	return
 }

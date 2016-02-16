@@ -22,20 +22,19 @@ func clearExpiredClient() {
 
 		beforeClientCount := clientBLL.GetClientCount()
 		beforePlayerCount := playerBLL.GetPlayerCount()
-		expiredClientCount := 0
 
 		// 获取过期的客户端列表
 		expiredClientList := clientBLL.GetExpiredClientList()
-		for _, item := range expiredClientList {
-			expiredClientCount++
+		expiredClientCount := len(expiredClientList)
+		if expiredClientCount == 0 {
+			continue
+		}
 
-			// 根据客户端对象来断开连接
+		for _, item := range expiredClientList {
 			playerBLL.DisconnectByClient(item, disconnectType.FromExpire)
 		}
 
 		// 记录日志
-		if expiredClientCount > 0 {
-			logUtil.Log(fmt.Sprintf("清理前的客户端数量为：%d，清理前的玩家数量为：%d， 本次清理不活跃的数量为：%d", beforeClientCount, beforePlayerCount, expiredClientCount), logUtil.Debug, true)
-		}
+		logUtil.Log(fmt.Sprintf("清理前的客户端数量为：%d，清理前的玩家数量为：%d， 本次清理不活跃的数量为：%d", beforeClientCount, beforePlayerCount, expiredClientCount), logUtil.Debug, true)
 	}
 }
