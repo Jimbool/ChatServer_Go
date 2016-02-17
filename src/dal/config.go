@@ -73,11 +73,6 @@ func init() {
 
 	// 解析GameDBConnection配置
 	GameDBConnection, GameDBMaxOpenConns, GameDBMaxIdleConns = initDBConnection(config, "GameDBConnection", "GameDBMaxOpenConns", "GameDBMaxIdleConns")
-
-	fmt.Println("ServerGroupId:", ServerGroupId)
-	fmt.Println(ChatDBConnection, ChatDBMaxOpenConns, ChatDBMaxIdleConns)
-	fmt.Println(ModelDBConnection, ModelDBMaxOpenConns, ModelDBMaxIdleConns)
-	fmt.Println(GameDBConnection, GameDBMaxOpenConns, GameDBMaxIdleConns)
 }
 
 func initServerGroup(config map[string]interface{}) int {
