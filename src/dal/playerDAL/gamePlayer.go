@@ -13,7 +13,6 @@ func GetGamePlayer(id string) (name string, unionId string, exists bool, err err
 	var guildId interface{}
 	if err = dal.GameDB().QueryRow(command, id).Scan(&name, &guildId); err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Println("no rows")
 			// 重置err，使其为nil；因为这代表的是没有查找到数据，而不是真正的错误
 			err = nil
 			return
