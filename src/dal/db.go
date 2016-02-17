@@ -19,9 +19,9 @@ var (
 
 // 初始化数据库连接相关的配置
 func init() {
-	chatDB = openMysqlConnection(ChatDBConnection, MaxOpenConns, MaxIdleConns)
-	modelDB = openMysqlConnection(ModelDBConnection, 0, 0)
-	gameDB = openMysqlConnection(GameDBConnection, MaxOpenConns, MaxIdleConns)
+	chatDB = openMysqlConnection(ChatDBConnection, ChatDBMaxOpenConns, ChatDBMaxIdleConns)
+	modelDB = openMysqlConnection(ModelDBConnection, ModelDBMaxOpenConns, ModelDBMaxIdleConns)
+	gameDB = openMysqlConnection(GameDBConnection, GameDBMaxOpenConns, GameDBMaxIdleConns)
 
 	// 启动一个Goroutine一直ping数据库，以免被数据库认为过期而关掉
 	go ping()
