@@ -1,0 +1,83 @@
+1、小精灵聊天服务器提供封号、禁言、推送系统消息、重新加载屏蔽字库等API；
+2、其中appId固定为：PKQ
+3、appKey固定为：7DE9DAA1-E87C-FF51-BCE3-15946DBE9462
+4、url前缀为：ServerGroup对象中的ChatServerUrl的端口号+1；如ChatServerUrl为192.168.1.68:8001，则url前缀为：http://192.168.1.68:8002；再如：192.168.1.68:8009->http://192.168.1.68:8010
+5、每个url的后缀都是不同的
+6、每个功能的签名方式都可能是不同的
+7、返回结果是一个JSON字符串，其中的Code=0表示成功，否则表示失败；如果失败可以显示Message字段，以便于发现问题所在
+
+
+/// 封号
+static void TestForbid()
+{
+    String appId = "PKQ";
+    String appKey = "7DE9DAA1-E87C-FF51-BCE3-15946DBE9462";
+    String forbidUrl = "http://192.168.1.68:8002/API/forbid";
+
+    String playerId = "00957233-b685-4ca0-909e-ec652885a194";
+    Int32 type = 0; //(0:查看封号状态 1:封号 2:解封)
+    String sign = MD5Util.MD5(String.Format("{0}-{1}-{2}-{3}", playerId, type, appId, appKey), LetterCase.LowerCase);
+    String postData = String.Format("PlayerId={0}&Type={1}&Sign={2}", playerId, type, sign);
+
+    String resultStr = WebUtil.PostWebData(forbidUrl, postData, DataCompress.NotCompress);
+    Dictionary<string, object> resultObj = JsonUtil.Deserialize(resultStr);
+
+    //Data：
+    如果type=0，则Data表示是否已经封号(bool型)
+    如果type!=0，则Data为空
+}
+
+/// 禁言
+static void TestSilent()
+{
+    String appId = "PKQ";
+    String appKey = "7DE9DAA1-E87C-FF51-BCE3-15946DBE9462";
+    String silentUrl = "http://192.168.1.68:8002/API/silent";
+
+    String playerId = "00957233-b685-4ca0-909e-ec652885a194";
+    Int32 type = 0; //(0:查看禁言状态 1:禁言 2:解禁)
+    Int32 duration = 30; //禁言的分钟数
+    String sign = MD5Util.MD5(String.Format("{0}-{1}-{2}-{3}-{4}", playerId, type, duration, appId, appKey), LetterCase.LowerCase);
+    String postData = String.Format("PlayerId={0}&Type={1}&Duration={2}&Sign={3}", playerId, type, duration, sign);
+
+    String resultStr = WebUtil.PostWebData(silentUrl, postData, DataCompress.NotCompress);
+    Dictionary<string, object> resultObj = JsonUtil.Deserialize(resultStr);
+
+    //Data：
+    如果type=0，data["Status"]表示是否被禁言(bool型)；如果被禁言data["LeftMinutes"]表示禁言剩余的分钟数
+    如果type!=0，则Data为空
+}
+
+/// 推送系统消息
+static void TestPush()
+{
+    String appId = "PKQ";
+    String appKey = "7DE9DAA1-E87C-FF51-BCE3-15946DBE9462";
+    String pushUrl = "http://192.168.1.68:8002/API/push";
+
+    String message = "大家好，我们将于20:50—21:15进行一次更新维护，本次更新主要修复一些已知问题，并为春节的到来做准备，更新完毕后即可正常登录，祝大家游戏愉快！";
+    String sign = MD5Util.MD5(String.Format("{0}-{1}-{2}", message, appId, appKey), LetterCase.LowerCase);
+    String postData = String.Format("Message={0}&Sign={1}", message, sign);
+
+    String resultStr = WebUtil.PostWebData(pushUrl, postData, DataCompress.NotCompress);
+    Dictionary<string, object> resultObj = JsonUtil.Deserialize(resultStr);
+
+    //Data：无
+}
+
+/// 重新加载屏蔽字库
+static void TestSensitive()
+{
+    String appId = "PKQ";
+    String appKey = "7DE9DAA1-E87C-FF51-BCE3-15946DBE9462";
+    String pushUrl = "http://192.168.1.68:8002/API/sensitive";
+
+    String message = "欢迎来到皮卡丘";
+    String sign = MD5Util.MD5(String.Format("{0}-{1}-{2}", message, appId, appKey), LetterCase.LowerCase);
+    String postData = String.Format("Message={0}&Sign={1}", message, sign);
+
+    String resultStr = WebUtil.PostWebData(pushUrl, postData, DataCompress.NotCompress);
+    Dictionary<string, object> resultObj = JsonUtil.Deserialize(resultStr);       
+
+    //Data：无   
+}
